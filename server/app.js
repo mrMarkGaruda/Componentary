@@ -1,0 +1,26 @@
+const express = require('express')
+const cors = require('cors')
+const morgan = require('morgan')
+const cookieParser = require('cookie-parser')
+const connectDB = require('./config/db')
+const redisClient = require('./config/redis')
+const neo4jDriver = require('./config/neo4j')
+const errorHandler = require('./middleware/error')
+const app = express()
+connectDB()
+app.use(cors())
+app.use(express.json())
+app.use(morgan('dev'))
+app.use(cookieParser())
+app.use((req, res, next) => {
+  req.redisClient = redisClient
+  req.neo4jDriver = neo4jDriver
+  next()
+})
+app.use('/api/auth', require('./routes/auth'))
+app.use('/api/products', require('./routes/products'))
+app.use('/api/orders', require('./routes/orders'))
+app.use('/api/cart', require('./routes/cart'))
+app.use('/api/recommendations', require('./routes/recommendations'))
+app.use(errorHandler)
+module.exports = app
