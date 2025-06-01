@@ -31,11 +31,11 @@ server/dist
 *.sln
 *.sw?
 
-# Environment files
-.env
-client/.env
-server/.env
-docker/.env
+# Environment files (disabled for now, uncomment if needed)
+# .env
+# client/.env
+# server/.env
+# docker/.env
 
 # Docker
 docker/mongo-init.js
