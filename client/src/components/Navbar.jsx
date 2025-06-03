@@ -18,7 +18,7 @@ const Navbar = () => {
       <div className="container d-flex flex-wrap align-items-center justify-content-center justify-content-md-between">
         <Link to="/" className="d-flex align-items-center mb-2 mb-md-0 text-dark text-decoration-none">
           <i className="bi bi-shop-window fs-4 me-2"></i>
-          <h3 className="m-0">Markslist</h3>
+          <h3 className="m-0">Componentary</h3>
         </Link>
 
         <ul className="nav col-12 col-md-auto mb-2 justify-content-center mb-md-0">

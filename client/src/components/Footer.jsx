@@ -9,7 +9,7 @@ const Footer = () => {
           <div className="col-md-4 text-center text-md-start">
             <Link to="/" className="text-decoration-none text-dark">
               <i className="bi bi-shop-window fs-4 me-2"></i>
-              <span className="fw-bold">Markslist</span>
+              <span className="fw-bold">Componentary</span>
             </Link>
           </div>
           
@@ -43,7 +43,7 @@ const Footer = () => {
           </div>
         </div>
         <hr />
-        <p className="text-center text-muted mb-0">© 2025 Markslist. All rights reserved.</p>
+        <p className="text-center text-muted mb-0">© 2025 Componentary. All rights reserved.</p>
       </div>
     </footer>
   );
