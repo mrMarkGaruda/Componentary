@@ -1,5 +1,5 @@
 const express = require('express');
-const Product = require('../models/Product');
+const Product = require('../models/Product'); // This refers to the Product Mongoose Model
 const auth = require('../middleware/auth');
 const router = express.Router();
 
@@ -15,7 +15,11 @@ router.get('/', async (req, res) => {
     }
     
     // If not in cache, get from MongoDB
-    const products = await Product.find().populate('seller', 'name email');
+    // Note: The original comment "Store name and email of seller in the product directly"
+    // suggests denormalization. If you want to denormalize, you'd modify the Product Mongoose
+    // schema to include seller name/email and populate during product creation/update.
+    // For now, keeping original populate behavior.
+    const products = await Product.find().populate('seller', 'name email'); 
     
     // Cache for 5 minutes
     await req.redisClient.setex(cacheKey, 300, JSON.stringify(products));
