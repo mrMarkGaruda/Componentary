@@ -61,8 +61,9 @@ app.use('/api/orders', require('./routes/orders'))
 app.use('/api/cart', require('./routes/cart'))
 app.use('/api/recommendations', require('./routes/recommendations'))
 
-// 404 handler
-app.use('*', (req, res) => {
+// 404 handler - Fixed for Express 5.x
+// Use a regex pattern instead of '*' wildcard
+app.use(/./, (req, res) => {
   res.status(404).json({ message: 'API endpoint not found' })
 })
 
