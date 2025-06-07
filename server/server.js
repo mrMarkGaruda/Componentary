@@ -1,6 +1,7 @@
 const http = require('http')
 const app = require('./app')
 const { Server } = require('socket.io')
+const connectDB = require('./config/db')
 
 const server = http.createServer(app)
 const io = new Server(server, { 
@@ -8,6 +9,13 @@ const io = new Server(server, {
     origin: process.env.CORS_ORIGIN || 'http://localhost:5000',
     methods: ['GET', 'POST']
   } 
+})
+
+// Connect to the database
+connectDB().then(() => {
+  console.log('✅ Database connected successfully')
+}).catch((error) => {
+  console.error('❌ Database connection failed:', error.message)
 })
 
 // Socket.IO connection handling

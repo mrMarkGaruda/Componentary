@@ -1,77 +1,27 @@
-const USERS_STORAGE_KEY = 'mock_api_users';
+import axios from 'axios';
 
-// Initialize users in localStorage if they don't exist
-const initializeUsers = () => {
-  if (!localStorage.getItem(USERS_STORAGE_KEY)) {
-    const initialUsers = [
-      {
-        name: 'Demo User',
-        email: 'demo@example.com',
-        password: 'password123'
-      }
-    ];
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(initialUsers));
-  }
-};
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // Login user
 export const loginUser = async (email, password) => {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
   try {
-    initializeUsers();
-    const users = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) || '[]');
-    const user = users.find(u => u.email === email && u.password === password);
-    
-    if (!user) {
-      throw new Error('Invalid email or password');
-    }
-    
-    // Generate a mock token (in a real app, this would come from the server)
-    const token = btoa(JSON.stringify({ userId: email, timestamp: Date.now() }));
-    
-    // Store token in localStorage
+    const res = await axios.post(`${API_BASE_URL}/api/auth/login`, { email, password });
+    const { token, user } = res.data;
     localStorage.setItem('token', token);
-    localStorage.setItem('currentUser', JSON.stringify({
-      name: user.name,
-      email: user.email
-    }));
-    
-    return { token, user: { name: user.name, email: user.email } };
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    return { token, user };
   } catch (error) {
-    console.error('Login error:', error);
-    throw error;
+    throw new Error(error.response?.data?.message || 'Login failed');
   }
 };
 
 // Register user
 export const registerUser = async (userData) => {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
   try {
-    initializeUsers();
-    const users = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) || '[]');
-    
-    // Check if email already exists
-    if (users.some(u => u.email === userData.email)) {
-      throw new Error('Email already registered');
-    }
-    
-    // Add new user
-    users.push({
-      name: userData.name,
-      email: userData.email,
-      password: userData.password
-    });
-    
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-    
-    return { success: true };
+    const res = await axios.post(`${API_BASE_URL}/api/auth/signup`, userData);
+    return res.data;
   } catch (error) {
-    console.error('Registration error:', error);
-    throw error;
+    throw new Error(error.response?.data?.message || 'Registration failed');
   }
 };
 
