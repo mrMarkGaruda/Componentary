@@ -1,10 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { isAuthenticated } from '../utils/auth';
+import { isAuthenticated, getCurrentUser } from '../utils/auth';
 import { useCart } from '../contexts/CartContext';
+import noImage from '../assets/no-image.png';
 
 const ProductCard = ({ product }) => {
   const authenticated = isAuthenticated();
+  const user = getCurrentUser();
+  const userRole = user?.role;
   const { addToCart } = useCart();
   
   return (
@@ -17,7 +20,7 @@ const ProductCard = ({ product }) => {
           style={{ height: '200px', objectFit: 'cover' }}
           onError={(e) => {
             e.target.onerror = null; // Prevent infinite loop
-            e.target.src = require('../assets/no-image.png');
+            e.target.src = noImage;
           }}
         />
         <div className="card-body d-flex flex-column">
@@ -35,11 +38,15 @@ const ProductCard = ({ product }) => {
               <i className="bi bi-cart-plus"></i> Add
             </button>
           </div>
-          {authenticated && (
+          {authenticated && (userRole === 'admin' || userRole === 'seller') ? (
             <Link to={`/product/edit/${product._id}`} className="btn btn-sm btn-outline-secondary mt-2">
               Edit
             </Link>
-          )}
+          ) : authenticated ? (
+            <button className="btn btn-sm btn-outline-secondary mt-2" disabled title="Only sellers and admins can edit products">
+              Edit
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

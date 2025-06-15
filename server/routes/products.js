@@ -1,6 +1,7 @@
 const express = require('express');
 const Product = require('../models/Product'); // This refers to the Product Mongoose Model
 const auth = require('../middleware/auth');
+const roles = require('../middleware/roles');
 const router = express.Router();
 
 // Get all products with Redis caching
@@ -53,7 +54,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create product
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, roles(['admin', 'seller']), async (req, res) => {
   try {
     const product = new Product({
       ...req.body,
@@ -70,7 +71,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 // Update product
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, roles(['admin', 'seller']), async (req, res) => {
   try {
     const product = await Product.findOneAndUpdate(
       { _id: req.params.id, seller: req.user.id },

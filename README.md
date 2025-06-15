@@ -1,7 +1,37 @@
 ## Checklist
 
 - [x] Fix the no image error spam in console
-- [ ] Find out where the database is getting products from initially and remove them
-- [ ] Make a seed.sh file which will add a lot of products, users, orders, everything in database and make it run automatically on build
-- [ ] Create the demo@example.com account
-- [ ] Add separation between Admin, Seller, and Customer for users
+- [x] Expand the mongo init script
+- [x] Create the admin, seller, and customer seed accounts
+- [x] Add separation between Admin, Seller, and Customer for users (backend and frontend)
+- [x] Restrict product creation/editing to Admin and Seller roles (backend and frontend)
+- [x] Show user role in the navbar and restrict UI actions by role (with tooltips/disabled states for unauthorized users)
+- [x] Add role field to User schema and seed script
+- [x] Protect product form page from unauthorized roles
+- [x] Return user role in auth responses and store in frontend
+- [x] Add user role selection to signup page
+- [x] Remove demo user functionality
+- [x] Save orders to the database when checking out
+- [x] Implement and display 'Frequently Bought Together' recommendations (backend and frontend)
+- [x] Improve cart UX and fix React key warnings
+- [x] Fix all critical runtime errors and blank page issues
+- [ ] Add admin dashboard for user/product management
+- [ ] Add seller dashboard for managing own products/orders
+- [ ] Add customer order history page
+- [ ] Add product reviews and ratings (backend and frontend)
+- [ ] Add password reset/forgot password functionality
+- [ ] Add email verification for new users
+- [ ] Add more robust error handling and user feedback throughout the app
+- [ ] Add tests (unit/integration/end-to-end)
+- [ ] Improve mobile responsiveness and accessibility
+- [ ] Add deployment instructions and environment setup to this README
+- [ ] Document API endpoints and expected request/response formats
+- [ ] Add pagination and search to product listing
+- [ ] Add filtering and sorting to product listing
+- [ ] Add user profile page and allow editing profile info
+- [ ] Add support for product images (upload, not just URL)
+- [ ] Add order management for admin and seller
+- [ ] Add analytics/dashboard for admin
+- [ ] Add notifications (e.g., for order status changes)
+- [ ] Add integration with payment gateway for real purchases
+- [ ] Add support for multi-language/localization

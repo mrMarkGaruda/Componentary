@@ -9,6 +9,7 @@ const SignupPage = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'customer',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -60,9 +61,7 @@ const SignupPage = () => {
               
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
-                  <label htmlFor="name" className="form-label">
-                    Full Name
-                  </label>
+                  <label htmlFor="name" className="form-label">Name</label>
                   <input
                     type="text"
                     className="form-control"
@@ -73,11 +72,8 @@ const SignupPage = () => {
                     required
                   />
                 </div>
-                
                 <div className="mb-3">
-                  <label htmlFor="email" className="form-label">
-                    Email address
-                  </label>
+                  <label htmlFor="email" className="form-label">Email address</label>
                   <input
                     type="email"
                     className="form-control"
@@ -88,11 +84,8 @@ const SignupPage = () => {
                     required
                   />
                 </div>
-                
                 <div className="mb-3">
-                  <label htmlFor="password" className="form-label">
-                    Password
-                  </label>
+                  <label htmlFor="password" className="form-label">Password</label>
                   <input
                     type="password"
                     className="form-control"
@@ -103,11 +96,8 @@ const SignupPage = () => {
                     required
                   />
                 </div>
-                
                 <div className="mb-3">
-                  <label htmlFor="confirmPassword" className="form-label">
-                    Confirm Password
-                  </label>
+                  <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
                   <input
                     type="password"
                     className="form-control"
@@ -117,6 +107,21 @@ const SignupPage = () => {
                     onChange={handleChange}
                     required
                   />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="role" className="form-label">Account Type</label>
+                  <select
+                    className="form-select"
+                    id="role"
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="customer">Customer</option>
+                    <option value="seller">Seller</option>
+                    <option value="admin">Admin</option>
+                  </select>
                 </div>
                 
                 <button

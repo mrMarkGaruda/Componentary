@@ -57,3 +57,25 @@ export const deleteProduct = async (id, token) => {
     throw new Error('Failed to delete product');
   }
 };
+
+// Place order
+export const placeOrder = async (orderData, token) => {
+  try {
+    const res = await axios.post(`${API_BASE_URL}/api/orders`, orderData, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to place order');
+  }
+};
+
+// Get frequently bought together for a product
+export const fetchBoughtTogether = async (productId) => {
+  try {
+    const res = await axios.get(`${API_BASE_URL}/api/recommendations/bought-together/${productId}`);
+    return res.data;
+  } catch (error) {
+    return [];
+  }
+};

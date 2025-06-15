@@ -28,7 +28,7 @@ const CartDrawer = () => {
         ) : (
           <>
             {cart.map(item => (
-              <div key={item.id} className="card mb-3">
+              <div key={item._id} className="card mb-3">
                 <div className="row g-0">
                   <div className="col-4">
                     <img 
@@ -48,7 +48,7 @@ const CartDrawer = () => {
                           <button 
                             className="btn btn-outline-secondary" 
                             type="button"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            onClick={() => updateQuantity(item._id, item.quantity - 1)}
                             disabled={item.quantity <= 1}
                           >-</button>
                           <input 
@@ -58,17 +58,17 @@ const CartDrawer = () => {
                             readOnly
                           />
                           <button 
-                            className="btn btn-outline-secondary" 
+                            className="btn btn-outline-secondary"
                             type="button"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            onClick={() => updateQuantity(item._id, item.quantity + 1)}
                           >+</button>
                         </div>
                         
                         <button 
-                          className="btn btn-sm text-danger ms-2" 
-                          onClick={() => removeFromCart(item.id)}
+                          className="btn btn-outline-danger btn-sm mt-2"
+                          onClick={() => removeFromCart(item._id)}
                         >
-                          <i className="bi bi-trash"></i>
+                          Remove
                         </button>
                       </div>
                     </div>

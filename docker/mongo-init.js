@@ -58,6 +58,7 @@ const usersToInsert = [
     name: 'John Doe',
     email: 'john.doe@example.com',
     password: 'password123',
+    role: 'customer',
     createdAt: new Date(),
     updatedAt: new Date()
   },
@@ -65,6 +66,7 @@ const usersToInsert = [
     name: 'Jane Smith',
     email: 'jane.smith@example.com',
     password: 'password456',
+    role: 'seller',
     createdAt: new Date(),
     updatedAt: new Date()
   },
@@ -72,6 +74,7 @@ const usersToInsert = [
     name: 'Admin User',
     email: 'admin@componentary.com',
     password: 'adminpassword',
+    role: 'admin',
     createdAt: new Date(),
     updatedAt: new Date()
   }

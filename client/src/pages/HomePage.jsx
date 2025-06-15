@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { fetchProducts } from '../utils/api';
 import ProductCard from '../components/ProductCard';
 import { Link } from 'react-router-dom';
-import { isAuthenticated } from '../utils/auth';
+import { isAuthenticated, getCurrentUser } from '../utils/auth';
 
 const HomePage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const authenticated = isAuthenticated();
+  const user = getCurrentUser();
+  const userRole = user?.role;
 
   useEffect(() => {
     const getProducts = async () => {
@@ -53,10 +55,14 @@ const HomePage = () => {
             <div className="col-lg-6">
               <h1 className="display-4 fw-bold">Discover Amazing Products</h1>
               <p className="lead">Find the best products for your needs with our curated selection.</p>
-              {authenticated ? (
+              {authenticated && (userRole === 'admin' || userRole === 'seller') ? (
                 <Link to="/product/new" className="btn btn-light btn-lg">
                   <i className="bi bi-plus-circle me-2"></i>Add Your Product
                 </Link>
+              ) : authenticated ? (
+                <button className="btn btn-light btn-lg" disabled title="Only sellers and admins can add products">
+                  <i className="bi bi-plus-circle me-2"></i>Add Your Product
+                </button>
               ) : (
                 <Link to="/signup" className="btn btn-light btn-lg">
                   <i className="bi bi-person-plus me-2"></i>Sign Up Now
@@ -78,22 +84,32 @@ const HomePage = () => {
       <div className="container py-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h2>Featured Products</h2>
-          {authenticated && (
+          {authenticated && (userRole === 'admin' || userRole === 'seller') ? (
             <Link to="/product/new" className="btn btn-outline-primary">
               <i className="bi bi-plus-circle me-2"></i>Add New Product
             </Link>
-          )}
+          ) : authenticated ? (
+            <button className="btn btn-outline-primary" disabled title="Only sellers and admins can add products">
+              <i className="bi bi-plus-circle me-2"></i>Add New Product
+            </button>
+          ) : null}
         </div>
         
         {products.length === 0 ? (
           <div className="alert alert-info py-4 text-center">
             <i className="bi bi-info-circle fs-4 d-block mb-3"></i>
             <h4>No products available yet</h4>
-            {authenticated ? (
+            {authenticated && (userRole === 'admin' || userRole === 'seller') ? (
               <div className="mt-3">
                 <Link to="/product/new" className="btn btn-primary">
                   Add Your First Product
                 </Link>
+              </div>
+            ) : authenticated ? (
+              <div className="mt-3">
+                <button className="btn btn-primary" disabled title="Only sellers and admins can add products">
+                  Add Your First Product
+                </button>
               </div>
             ) : (
               <div className="mt-3">

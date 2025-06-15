@@ -7,6 +7,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const authenticated = isAuthenticated();
   const user = getCurrentUser();
+  const userRole = user?.role;
 
   const handleLogout = () => {
     logoutUser();
@@ -27,13 +28,19 @@ const Navbar = () => {
               <i className="bi bi-house-door me-1"></i> Home
             </Link>
           </li>
-          {authenticated && (
+          {(authenticated && (userRole === 'admin' || userRole === 'seller')) ? (
             <li>
               <Link to="/product/new" className="nav-link px-2 link-dark">
                 <i className="bi bi-plus-circle me-1"></i> Add Product
               </Link>
             </li>
-          )}
+          ) : authenticated ? (
+            <li>
+              <span className="nav-link px-2 text-muted" title="Only sellers and admins can add products" style={{ cursor: 'not-allowed', opacity: 0.6 }}>
+                <i className="bi bi-plus-circle me-1"></i> Add Product
+              </span>
+            </li>
+          ) : null}
         </ul>
 
         <div className="col-md-3 text-end">
@@ -52,6 +59,11 @@ const Navbar = () => {
                 <li>
                   <div className="dropdown-item-text">
                     <small className="text-muted">{user?.email}</small>
+                  </div>
+                </li>
+                <li>
+                  <div className="dropdown-item-text">
+                    <span className="badge bg-secondary">{userRole?.charAt(0).toUpperCase() + userRole?.slice(1)}</span>
                   </div>
                 </li>
                 <li><hr className="dropdown-divider" /></li>
