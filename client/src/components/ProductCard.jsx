@@ -16,8 +16,8 @@ const ProductCard = ({ product }) => {
           alt={product.name}
           style={{ height: '200px', objectFit: 'cover' }}
           onError={(e) => {
-            e.target.onerror = null; 
-            e.target.src = "https://via.placeholder.com/300x200?text=No+Image+Available"
+            e.target.onerror = null; // Prevent infinite loop
+            e.target.src = require('../assets/no-image.png');
           }}
         />
         <div className="card-body d-flex flex-column">
