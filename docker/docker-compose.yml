@@ -54,7 +54,7 @@ services:
     container_name: componentary_redis_commander
     restart: unless-stopped
     environment:
-      REDIS_HOSTS: redis:redis123@redis:6379
+      REDIS_HOSTS: localredis:redis:6379:0:redis123
       HTTP_USER: admin
       HTTP_PASSWORD: admin123
       REDIS_DB: 0
@@ -123,8 +123,8 @@ services:
     container_name: componentary_client
     restart: unless-stopped
     environment:
-      VITE_API_URL: http://server:3001
-      VITE_WS_URL: ws://server:3001
+      VITE_API_URL: http://localhost:3001 # Changed from http://server:3001
+      VITE_WS_URL: ws://localhost:3001   # Changed from ws://server:3001
     ports:
       - "5000:5000"
     volumes:
