@@ -12,6 +12,29 @@ export const fetchProducts = async () => {
   }
 };
 
+// Get all products (with potential filters, pagination, sorting)
+export const fetchProductsWithFilters = async (params) => {
+  try {
+    const res = await axios.get(`${API_BASE_URL}/api/products`, { params });
+    // The backend now returns an object like { products: [], totalPages: X, currentPage: Y, totalProducts: Z }
+    return res.data;
+  } catch (error) {
+    console.error('API Error fetching products with filters:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to fetch products');
+  }
+};
+
+// Get available filter options (categories, manufacturers, etc.)
+export const getProductFilterOptions = async () => {
+  try {
+    const res = await axios.get(`${API_BASE_URL}/api/products/filters`);
+    return res.data;
+  } catch (error) {
+    console.error('API Error fetching product filters:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to fetch product filter options');
+  }
+};
+
 // Get single product
 export const fetchProductById = async (id) => {
   try {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { fetchProductById, deleteProduct, fetchBoughtTogether } from '../utils/api';
-import { isAuthenticated, getToken } from '../utils/auth';
+import { isAuthenticated, getToken, getCurrentUser } from '../utils/auth'; // Added getCurrentUser
 import { useCart } from '../contexts/CartContext';
 import noImage from '../assets/no-image.png';
 
@@ -15,6 +15,7 @@ const ProductDetailPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [boughtTogether, setBoughtTogether] = useState([]);
   const authenticated = isAuthenticated();
+  const user = getCurrentUser(); // Get current user
   const { addToCart } = useCart();
 
   useEffect(() => {
