@@ -15,7 +15,7 @@ const ProductDetailPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [boughtTogether, setBoughtTogether] = useState([]);
   const authenticated = isAuthenticated();
-  const user = getCurrentUser(); // Get current user
+  const user = getCurrentUser(); // Ensure user is defined here
   const { addToCart } = useCart();
 
   useEffect(() => {
