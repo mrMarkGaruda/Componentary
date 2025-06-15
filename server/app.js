@@ -1,3 +1,4 @@
+// Load environment variables first
 require('dotenv').config()
 
 const express = require('express')
@@ -5,18 +6,40 @@ const cors = require('cors')
 const morgan = require('morgan')
 const cookieParser = require('cookie-parser')
 const connectDB = require('./config/db')
-const redisClient = require('./config/redis')
-const neo4jDriver = require('./config/neo4j')
+let redisClient = require('./config/redis')
+// Don't load neo4j here - it will be loaded after env vars are verified
 const errorHandler = require('./middleware/error')
 
 const app = express()
+
+// Environment variables are already loaded at the top
+console.log('Environment Variables:', {
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: process.env.PORT,
+  MONGO_URI: process.env.MONGO_URI,
+  REDIS_URL: process.env.REDIS_URL,
+  NEO4J_URI: process.env.NEO4J_URI,
+  NEO4J_USER: process.env.NEO4J_USER,
+  NEO4J_PASSWORD: process.env.NEO4J_PASSWORD,
+  JWT_SECRET: process.env.JWT_SECRET,
+  CORS_ORIGIN: process.env.CORS_ORIGIN
+})
+
+// Now load Neo4j after environment variables are confirmed
+let neo4jDriver = null
+try {
+  neo4jDriver = require('./config/neo4j')
+  console.log('✅ Neo4j driver loaded successfully')
+} catch (error) {
+  console.error('❌ Failed to load Neo4j driver:', error.message)
+}
 
 // Connect to databases
 connectDB()
 
 // Middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5000',
+  origin: [process.env.CORS_ORIGIN || 'http://localhost:5000', 'http://localhost:5000', 'http://client:5000'],
   credentials: true
 }))
 app.use(express.json())
@@ -32,12 +55,27 @@ app.use((req, res, next) => {
 })
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+app.get('/health', async (req, res) => {
+  const health = {
+    status: 'OK',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  })
+    uptime: process.uptime(),
+    services: {
+      mongodb: 'connected',
+      neo4j: neo4jDriver ? 'connected' : 'disconnected',
+      redis: 'checking...'
+    }
+  }
+  
+  // Check Redis connection
+  try {
+    await req.redisClient.ping?.() || 'OK'
+    health.services.redis = 'connected'
+  } catch (error) {
+    health.services.redis = 'disconnected (mock mode)'
+  }
+  
+  res.json(health)
 })
 
 // Utility to warn if a full URL is used as a route path
@@ -61,9 +99,8 @@ app.use('/api/orders', require('./routes/orders'))
 app.use('/api/cart', require('./routes/cart'))
 app.use('/api/recommendations', require('./routes/recommendations'))
 
-// 404 handler - Fixed for Express 5.x
-// Use a regex pattern instead of '*' wildcard
-app.use(/./, (req, res) => {
+// 404 handler - Use '*' string instead of regex to avoid path-to-regexp error
+app.use('*', (req, res) => {
   res.status(404).json({ message: 'API endpoint not found' })
 })
 

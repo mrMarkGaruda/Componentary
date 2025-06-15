@@ -1,6 +1,6 @@
 const express = require('express')
 const Order = require('../models/Order')
-const Product = require('../models/Product') // Assuming Product model exists for stock updates
+const Product = require('../models/Product')
 const auth = require('../middleware/auth')
 const router = express.Router()
 
@@ -11,19 +11,14 @@ router.post('/', auth, async (req, res) => {
       user: req.user.id
     })
     await order.save()
-
-    // Update MongoDB stock with inc for each product in the order
     for (const item of order.items) {
-      // Find the product by its ID and decrement its stock by the ordered quantity
       await Product.findByIdAndUpdate(
         item.product,
-        { $inc: { stock: -item.quantity } }, // Use $inc to atomically decrement stock
-        { new: true } // Return the updated document
+        { $inc: { stock: -item.quantity } },
+        { new: true }
       )
     }
-
     const cartKey = `cart:${req.user.id}`
-    // Clear the user's cart in Redis after a successful order
     await req.redisClient.del(cartKey)
     res.status(201).json(order)
   } catch (error) {
@@ -33,40 +28,27 @@ router.post('/', auth, async (req, res) => {
 
 router.get('/', auth, async (req, res) => {
   try {
-    // Use aggregation with $lookup instead of populate for better performance and flexibility
     const orders = await Order.aggregate([
-      // Match orders for the authenticated user
-      { $match: { user: req.user._id } }, // Ensure req.user._id is used for ObjectId comparison
-
-      // Sort orders by creation date in descending order
+      { $match: { user: req.user._id } },
       { $sort: { createdAt: -1 } },
-
-      // Unwind the 'items' array to process each item individually
       { $unwind: '$items' },
-
-      // Perform a lookup to join with the 'products' collection
       {
         $lookup: {
-          from: 'products', // The collection name for products (usually pluralized lowercase)
-          localField: 'items.product', // Field from the input documents (Order's item.product)
-          foreignField: '_id', // Field from the "products" documents (_id of the product)
-          as: 'items.productDetails' // The array field to add to the input documents
+          from: 'products',
+          localField: 'items.product',
+          foreignField: '_id',
+          as: 'items.productDetails'
         }
       },
-
-      // Unwind the productDetails array created by $lookup (since it's an array)
       { $unwind: '$items.productDetails' },
-
-      // Group back the items into their original order structure
       {
         $group: {
-          _id: '$_id', // Group by the original order _id
-          user: { $first: '$user' }, // Take the first user field
-          totalAmount: { $first: '$totalAmount' }, // Take the first totalAmount
-          status: { $first: '$status' }, // Take the first status
-          createdAt: { $first: '$createdAt' }, // Take the first createdAt
-          updatedAt: { $first: '$updatedAt' }, // Take the first updatedAt
-          // Reconstruct the items array with the populated product details
+          _id: '$_id',
+          user: { $first: '$user' },
+          totalAmount: { $first: '$totalAmount' },
+          status: { $first: '$status' },
+          createdAt: { $first: '$createdAt' },
+          updatedAt: { $first: '$updatedAt' },
           items: {
             $push: {
               product: '$items.product',
@@ -82,8 +64,6 @@ router.get('/', auth, async (req, res) => {
           }
         }
       },
-      // Project to reshape the output to match the desired structure, if necessary
-      // For example, if you want to rename 'items.productDetails' to 'items.product'
       {
         $project: {
           _id: 1,
@@ -124,7 +104,7 @@ router.patch('/:id/status', auth, async (req, res) => {
       req.params.id,
       { status },
       { new: true }
-    ).populate('user', 'name email') // This populate remains as it's not related to the product lookup comment
+    ).populate('user', 'name email')
     if (!order) {
       return res.status(404).json({ message: 'Order not found' })
     }

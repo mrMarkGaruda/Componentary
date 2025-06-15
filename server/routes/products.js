@@ -7,13 +7,11 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const cacheKey = 'products:all';
-    
-    // Try to get from Redis cache first
+      // Try to get from Redis cache first
     const cachedProducts = await req.redisClient.get(cacheKey);
     if (cachedProducts) {
       return res.json(JSON.parse(cachedProducts));
     }
-    
     // If not in cache, get from MongoDB
     // Note: The original comment "Store name and email of seller in the product directly"
     // suggests denormalization. If you want to denormalize, you'd modify the Product Mongoose
@@ -24,8 +22,7 @@ router.get('/', async (req, res) => {
     // Cache for 5 minutes
     await req.redisClient.setex(cacheKey, 300, JSON.stringify(products));
     
-    res.json(products);
-  } catch (error) {
+    res.json(products);  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
@@ -64,11 +61,9 @@ router.post('/', auth, async (req, res) => {
     });
     
     await product.save();
-    
-    // Clear products cache
+      // Clear products cache
     await req.redisClient.del('products:all');
-    
-    res.status(201).json(product);
+      res.status(201).json(product);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
