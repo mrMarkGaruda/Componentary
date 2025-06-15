@@ -25,7 +25,7 @@ const ProductCard = ({ product }) => {
           <p className="card-text text-primary fw-bold">${product.price.toFixed(2)}</p>
           <p className="card-text text-truncate flex-grow-1">{product.description}</p>
           <div className="d-flex justify-content-between align-items-center mt-auto">
-            <Link to={`/product/${product.id}`} className="btn btn-sm btn-outline-primary">
+            <Link to={`/product/${product._id}`} className="btn btn-sm btn-outline-primary">
               View Details
             </Link>
             <button 
@@ -36,7 +36,7 @@ const ProductCard = ({ product }) => {
             </button>
           </div>
           {authenticated && (
-            <Link to={`/product/edit/${product.id}`} className="btn btn-sm btn-outline-secondary mt-2">
+            <Link to={`/product/edit/${product._id}`} className="btn btn-sm btn-outline-secondary mt-2">
               Edit
             </Link>
           )}

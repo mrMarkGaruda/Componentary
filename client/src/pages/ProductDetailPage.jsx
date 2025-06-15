@@ -98,8 +98,8 @@ const ProductDetailPage = () => {
               className="img-fluid rounded-start"
               style={{ maxHeight: '400px', width: '100%', objectFit: 'cover' }}
               onError={(e) => {
-                e.target.onerror = null; 
-                e.target.src = "https://via.placeholder.com/600x400?text=No+Image+Available"
+                e.target.onerror = null;
+                e.target.src = require('../assets/no-image.png');
               }}
             />
           </div>

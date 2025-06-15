@@ -49,28 +49,50 @@ db.chats.createIndex({ "lastMessage": 1 });
 // More sophisticated checks could be done (e.g., if collections are empty).
 db.products.deleteMany({});
 db.users.deleteMany({});
-// db.orders.deleteMany({}); // Decide if orders should be cleared too
-// db.reviews.deleteMany({}); // Decide if reviews should be cleared
 
-// Sample Products (New data)
+// Sample Users (New data - Passwords should be hashed in a real application)
+// For a seeding script, plain text passwords are okay for dev, but ensure they are not used in production.
+// The server-side application should handle hashing upon user registration.
+const usersToInsert = [
+  {
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    password: 'password123',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    name: 'Jane Smith',
+    email: 'jane.smith@example.com',
+    password: 'password456',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    name: 'Admin User',
+    email: 'admin@componentary.com',
+    password: 'adminpassword',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
+];
+
+db.users.insertMany(usersToInsert);
+const adminUser = db.users.findOne({ email: 'admin@componentary.com' });
+
+// Sample Products (schema-compliant)
 const productsToInsert = [
   {
     name: 'Laptop Pro 15',
     description: 'High-performance laptop for professionals. Features a 15-inch Retina display, M2 Pro chip, 16GB RAM, and 512GB SSD.',
     price: 1999.99,
     category: 'Electronics',
-    brand: 'TechCorp',
     stock: 50,
-    imageUrl: 'https://via.placeholder.com/300/0000FF/808080?Text=LaptopPro15',
-    attributes: [
-      { name: 'Display', value: '15-inch Retina' },
-      { name: 'Processor', value: 'M2 Pro' },
-      { name: 'RAM', value: '16GB' },
-      { name: 'Storage', value: '512GB SSD' }
-    ],
+    image: 'https://via.placeholder.com/300/0000FF/808080?Text=LaptopPro15',
     tags: ['laptop', 'professional', 'high-performance', 'TechCorp'],
     averageRating: 4.8,
-    reviewsCount: 120, // This field suggests a denormalized count, ensure your app logic maintains it or calculates it
+    totalRatings: 120,
+    seller: adminUser._id,
     createdAt: new Date(),
     updatedAt: new Date()
   },
@@ -79,17 +101,12 @@ const productsToInsert = [
     description: 'Latest generation smartphone with a stunning OLED display, advanced camera system, and all-day battery life.',
     price: 999.00,
     category: 'Electronics',
-    brand: 'ConnectMe',
     stock: 150,
-    imageUrl: 'https://via.placeholder.com/300/FF0000/FFFFFF?Text=SmartphoneX',
-    attributes: [
-      { name: 'Display', value: '6.7-inch OLED' },
-      { name: 'Camera', value: '48MP Triple Lens' },
-      { name: 'Battery', value: '4500mAh' }
-    ],
+    image: 'https://via.placeholder.com/300/FF0000/FFFFFF?Text=SmartphoneX',
     tags: ['smartphone', 'mobile', 'camera', 'ConnectMe'],
     averageRating: 4.5,
-    reviewsCount: 250,
+    totalRatings: 250,
+    seller: adminUser._id,
     createdAt: new Date(),
     updatedAt: new Date()
   },
@@ -98,17 +115,12 @@ const productsToInsert = [
     description: 'Noise-cancelling wireless headphones with superior sound quality and comfortable design for long listening sessions.',
     price: 249.50,
     category: 'Electronics',
-    brand: 'AudioPhile',
     stock: 200,
-    imageUrl: 'https://via.placeholder.com/300/008000/FFFFFF?Text=WirelessHeadphones',
-    attributes: [
-      { name: 'Type', value: 'Over-ear' },
-      { name: 'Connectivity', value: 'Bluetooth 5.2' },
-      { name: 'Feature', value: 'Active Noise Cancellation' }
-    ],
+    image: 'https://via.placeholder.com/300/008000/FFFFFF?Text=WirelessHeadphones',
     tags: ['headphones', 'audio', 'wireless', 'noise-cancelling', 'AudioPhile'],
     averageRating: 4.7,
-    reviewsCount: 300,
+    totalRatings: 300,
+    seller: adminUser._id,
     createdAt: new Date(),
     updatedAt: new Date()
   },
@@ -116,18 +128,13 @@ const productsToInsert = [
     name: 'Smart Watch Series 7',
     description: 'Stay connected and track your fitness with the new Smart Watch Series 7. Brighter display and faster charging.',
     price: 399.00,
-    category: 'Wearables',
-    brand: 'FitTech',
+    category: 'Electronics',
     stock: 120,
-    imageUrl: 'https://via.placeholder.com/300/FFFF00/000000?Text=SmartWatch7',
-    attributes: [
-      { name: 'Display', value: 'Always-On Retina' },
-      { name: 'Sensors', value: 'ECG, SpO2' },
-      { name: 'Water Resistance', value: '50 meters' }
-    ],
+    image: 'https://via.placeholder.com/300/FFFF00/000000?Text=SmartWatch7',
     tags: ['smartwatch', 'wearable', 'fitness', 'health', 'FitTech'],
     averageRating: 4.6,
-    reviewsCount: 180,
+    totalRatings: 180,
+    seller: adminUser._id,
     createdAt: new Date(),
     updatedAt: new Date()
   },
@@ -135,79 +142,20 @@ const productsToInsert = [
     name: 'Gaming Console NextGen',
     description: 'Experience next-generation gaming with ultra-fast load times, 4K graphics, and an immersive controller.',
     price: 499.99,
-    category: 'Gaming',
-    brand: 'GameOn',
+    category: 'Electronics',
     stock: 75,
-    imageUrl: 'https://via.placeholder.com/300/800080/FFFFFF?Text=GamingConsole',
-    attributes: [
-      { name: 'Resolution', value: '4K UHD' },
-      { name: 'Storage', value: '1TB NVMe SSD' },
-      { name: 'Controller', value: 'Haptic Feedback' }
-    ],
+    image: 'https://via.placeholder.com/300/800080/FFFFFF?Text=GamingConsole',
     tags: ['gaming', 'console', '4K', 'entertainment', 'GameOn'],
     averageRating: 4.9,
-    reviewsCount: 95,
+    totalRatings: 95,
+    seller: adminUser._id,
     createdAt: new Date(),
     updatedAt: new Date()
   }
 ];
 
-if (productsToInsert.length > 0) {
-  db.products.insertMany(productsToInsert);
-  print(productsToInsert.length + ' sample products inserted.');
-} else {
-  print('No sample products to insert.');
-}
-
-
-// Sample Users (New data - Passwords should be hashed in a real application)
-// For a seeding script, plain text passwords are okay for dev, but ensure they are not used in production.
-// The server-side application should handle hashing upon user registration.
-const usersToInsert = [
-  {
-    username: 'john_doe',
-    email: 'john.doe@example.com',
-    password: 'password123', // Plain text for seeding; should be hashed by the application if this were a real user creation flow
-    firstName: 'John',
-    lastName: 'Doe',
-    role: 'user',
-    addresses: [
-      { street: '123 Main St', city: 'Anytown', state: 'CA', zip: '90210', country: 'USA', isDefault: true }
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    username: 'jane_smith',
-    email: 'jane.smith@example.com',
-    password: 'password456', // Plain text for seeding
-    firstName: 'Jane',
-    lastName: 'Smith',
-    role: 'user',
-    addresses: [
-      { street: '456 Oak Ave', city: 'Otherville', state: 'NY', zip: '10001', country: 'USA', isDefault: true }
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    username: 'admin_user',
-    email: 'admin@componentary.com',
-    password: 'adminpassword', // Plain text for seeding
-    firstName: 'Admin',
-    lastName: 'User',
-    role: 'admin',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  }
-];
-
-if (usersToInsert.length > 0) {
-  db.users.insertMany(usersToInsert);
-  print(usersToInsert.length + ' sample users inserted.');
-} else {
-  print('No sample users to insert.');
-}
+db.products.insertMany(productsToInsert);
+print(productsToInsert.length + ' sample products inserted.');
 
 // Example of creating a sample order (optional, can be expanded)
 /*
