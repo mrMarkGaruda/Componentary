@@ -160,9 +160,9 @@ const ProductsPage = () => {
         </div>
       </div>
 
-      <Row>
+      <div className="row">
         {/* Filters Sidebar */}
-        <Col lg={3} className="mb-4">
+        <div className="col-lg-3 mb-4">
           <div className="sticky-top" style={{ top: '100px' }}>
             {availableFilters && (
               <ProductFilters
@@ -172,15 +172,15 @@ const ProductsPage = () => {
               />
             )}
           </div>
-        </Col>
+        </div>
 
         {/* Main Content */}
-        <Col lg={9}>
+        <div className="col-lg-9">
           {/* Search and Sort Controls */}
           <div className="mb-4">
-            <Row className="align-items-center">
-              <Col md={8}>
-                <Form onSubmit={handleSearchSubmit}>
+            <div className="row align-items-center">
+              <div className="col-md-8">
+                <form onSubmit={handleSearchSubmit}>
                   <div className="input-group">
                     <input
                       type="text"
@@ -189,14 +189,15 @@ const ProductsPage = () => {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                    <Button type="submit" variant="outline-primary">
+                    <button type="submit" className="btn btn-outline-primary">
                       <i className="bi bi-search"></i>
-                    </Button>
+                    </button>
                   </div>
-                </Form>
-              </Col>
-              <Col md={4}>
-                <Form.Select
+                </form>
+              </div>
+              <div className="col-md-4">
+                <select
+                  className="form-select"
                   value={`${sortBy}-${sortOrder}`}
                   onChange={(e) => {
                     const [newSortBy, newSortOrder] = e.target.value.split('-');
@@ -210,9 +211,9 @@ const ProductsPage = () => {
                   <option value="name-asc">Name: A to Z</option>
                   <option value="name-desc">Name: Z to A</option>
                   <option value="averageRating-desc">Highest Rated</option>
-                </Form.Select>
-              </Col>
-            </Row>
+                </select>
+              </div>
+            </div>
           </div>
 
           {/* Products Count */}
@@ -227,18 +228,18 @@ const ProductsPage = () => {
           {/* Loading State */}
           {loading && (
             <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '300px' }}>
-              <Spinner animation="border" variant="primary">
+              <div className="spinner-border text-primary" role="status">
                 <span className="visually-hidden">Loading...</span>
-              </Spinner>
+              </div>
             </div>
           )}
 
           {/* Error State */}
           {error && (
-            <Alert variant="danger" className="mb-4">
+            <div className="alert alert-danger mb-4" role="alert">
               <i className="bi bi-exclamation-triangle me-2"></i>
               {error}
-            </Alert>
+            </div>
           )}
 
           {/* Products List */}
@@ -249,42 +250,74 @@ const ProductsPage = () => {
               {/* Pagination */}
               {productsData.totalPages > 1 && (
                 <div className="d-flex justify-content-center mt-4">
-                  <Pagination>
-                    <Pagination.First 
-                      onClick={() => handlePageChange(1)}
-                      disabled={productsData.currentPage === 1}
-                    />
-                    <Pagination.Prev 
-                      onClick={() => handlePageChange(productsData.currentPage - 1)}
-                      disabled={productsData.currentPage === 1}
-                    />
-                    
-                    {/* Page Numbers */}
-                    {Array.from({ length: Math.min(5, productsData.totalPages) }, (_, i) => {
-                      const pageNum = Math.max(1, productsData.currentPage - 2) + i;
-                      if (pageNum <= productsData.totalPages) {
-                        return (
-                          <Pagination.Item
-                            key={pageNum}
-                            active={pageNum === productsData.currentPage}
-                            onClick={() => handlePageChange(pageNum)}
-                          >
-                            {pageNum}
-                          </Pagination.Item>
-                        );
-                      }
-                      return null;
-                    })}
-                    
-                    <Pagination.Next 
-                      onClick={() => handlePageChange(productsData.currentPage + 1)}
-                      disabled={productsData.currentPage === productsData.totalPages}
-                    />
-                    <Pagination.Last 
-                      onClick={() => handlePageChange(productsData.totalPages)}
-                      disabled={productsData.currentPage === productsData.totalPages}
-                    />
-                  </Pagination>
+                  <nav aria-label="Products pagination">
+                    <ul className="pagination">
+                      <li className={`page-item ${productsData.currentPage === 1 ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(1)}
+                          disabled={productsData.currentPage === 1}
+                          aria-label="First page"
+                        >
+                          <i className="bi bi-chevron-double-left"></i>
+                        </button>
+                      </li>
+                      <li className={`page-item ${productsData.currentPage === 1 ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(productsData.currentPage - 1)}
+                          disabled={productsData.currentPage === 1}
+                          aria-label="Previous page"
+                        >
+                          <i className="bi bi-chevron-left"></i>
+                        </button>
+                      </li>
+                      
+                      {/* Page Numbers */}
+                      {Array.from({ length: Math.min(5, productsData.totalPages) }, (_, i) => {
+                        const pageNum = Math.max(1, productsData.currentPage - 2) + i;
+                        if (pageNum <= productsData.totalPages) {
+                          return (
+                            <li 
+                              key={pageNum}
+                              className={`page-item ${pageNum === productsData.currentPage ? 'active' : ''}`}
+                            >
+                              <button 
+                                className="page-link"
+                                onClick={() => handlePageChange(pageNum)}
+                                aria-label={`Page ${pageNum}`}
+                                aria-current={pageNum === productsData.currentPage ? 'page' : undefined}
+                              >
+                                {pageNum}
+                              </button>
+                            </li>
+                          );
+                        }
+                        return null;
+                      })}
+                      
+                      <li className={`page-item ${productsData.currentPage === productsData.totalPages ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(productsData.currentPage + 1)}
+                          disabled={productsData.currentPage === productsData.totalPages}
+                          aria-label="Next page"
+                        >
+                          <i className="bi bi-chevron-right"></i>
+                        </button>
+                      </li>
+                      <li className={`page-item ${productsData.currentPage === productsData.totalPages ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(productsData.totalPages)}
+                          disabled={productsData.currentPage === productsData.totalPages}
+                          aria-label="Last page"
+                        >
+                          <i className="bi bi-chevron-double-right"></i>
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
                 </div>
               )}
             </>
@@ -298,8 +331,8 @@ const ProductsPage = () => {
               <p className="text-muted">
                 Try adjusting your filters or search terms.
               </p>
-              <Button 
-                variant="outline-primary" 
+              <button 
+                className="btn btn-outline-primary"
                 onClick={() => {
                   setFilters({});
                   setSearchTerm('');
@@ -307,11 +340,11 @@ const ProductsPage = () => {
                 }}
               >
                 Clear All Filters
-              </Button>
+              </button>
             </div>
           )}
-        </Col>
-      </Row>
+        </div>
+      </div>
     </div>
   );
 };
