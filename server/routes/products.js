@@ -42,4 +42,66 @@ router.put('/:id', auth, roles(['admin', 'seller']), productController.updatePro
 // DELETE product
 router.delete('/:id', auth, roles(['admin', 'seller']), productController.deleteProduct);
 
+// Add review to product
+router.post('/:id/reviews', auth, async (req, res) => {
+  try {
+    const { rating, comment } = req.body;
+    const productId = req.params.id;
+    const userId = req.user.id;
+    
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    // Check if user already reviewed this product
+    const existingReview = product.ratings.find(
+      r => r.user.toString() === userId
+    );
+    
+    if (existingReview) {
+      return res.status(400).json({ message: 'You have already reviewed this product' });
+    }
+    
+    const review = {
+      user: userId,
+      rating: parseInt(rating),
+      comment: comment || '',
+      createdAt: new Date()
+    };
+    
+    product.ratings.push(review);
+    await product.save();
+    
+    // Populate the user info for the response
+    await product.populate('ratings.user', 'name email');
+    const savedReview = product.ratings[product.ratings.length - 1];
+    
+    res.status(201).json(savedReview);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Get reviews for a product
+router.get('/:id/reviews', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id)
+      .populate('ratings.user', 'name')
+      .select('ratings averageRating totalRatings');
+    
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    res.json({
+      reviews: product.ratings,
+      averageRating: product.averageRating,
+      totalRatings: product.totalRatings
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

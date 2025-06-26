@@ -1,269 +1,241 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Accordion, Form, Button, InputGroup, FormControl, Row, Col, Card, Spinner } from 'react-bootstrap';
+import React, { useState } from 'react';
 
-const ProductFilters = ({ availableFilters, onFilterChange, currentFilters }) => {
-  const [selectedCategories, setSelectedCategories] = useState(currentFilters.category ? currentFilters.category.split(',') : []);
-  const [selectedManufacturers, setSelectedManufacturers] = useState(currentFilters.manufacturer ? currentFilters.manufacturer.split(',') : []);
-  const [minPrice, setMinPrice] = useState(currentFilters.minPrice || '');
-  const [maxPrice, setMaxPrice] = useState(currentFilters.maxPrice || '');
-  const [selectedTags, setSelectedTags] = useState(currentFilters.tags ? currentFilters.tags.split(',') : []);
-  const [minRating, setMinRating] = useState(currentFilters.minRating || '');
-  const [specFilters, setSpecFilters] = useState({});
-  const [activeAccordionKeys, setActiveAccordionKeys] = useState(['0']); // Start with Core Filters open
+const ProductFilters = ({ 
+  filters, 
+  onFilterChange, 
+  availableFilters, 
+  onClearFilters 
+}) => {
+  const [openSections, setOpenSections] = useState({
+    category: true,
+    priceRange: true,
+    brand: true,
+    condition: true,
+    location: true
+  });
 
-  useEffect(() => {
-    const initialSpecs = {};
-    for (const key in currentFilters) {
-      if (key.startsWith('spec_')) {
-        initialSpecs[key.substring(5)] = currentFilters[key];
-      }
+  const toggleSection = (section) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const handleFilterChange = (filterType, value) => {
+    onFilterChange(filterType, value);
+  };
+
+  const handlePriceChange = (type, value) => {
+    const newPriceRange = {
+      ...filters.priceRange,
+      [type]: value
+    };
+    onFilterChange('priceRange', newPriceRange);
+  };
+
+  const handleCheckboxChange = (filterType, value, checked) => {
+    const currentValues = filters[filterType] || [];
+    let newValues;
+    
+    if (checked) {
+      newValues = [...currentValues, value];
+    } else {
+      newValues = currentValues.filter(v => v !== value);
     }
-    setSpecFilters(initialSpecs);
-    // Update selected categories/manufacturers if currentFilters change (e.g. from URL)
-    setSelectedCategories(currentFilters.category ? currentFilters.category.split(',') : []);
-    setSelectedManufacturers(currentFilters.manufacturer ? currentFilters.manufacturer.split(',') : []);
-    setMinPrice(currentFilters.minPrice || '');
-    setMaxPrice(currentFilters.maxPrice || '');
-    setSelectedTags(currentFilters.tags ? currentFilters.tags.split(',') : []);
-    setMinRating(currentFilters.minRating || '');
+    
+    onFilterChange(filterType, newValues);
+  };
 
-  }, [currentFilters]);
-
-  const handleCategoryChange = (e) => {
-    const { value, checked } = e.target;
-    setSelectedCategories(prev => 
-      checked ? [...prev, value] : prev.filter(cat => cat !== value)
+  if (!availableFilters) {
+    return (
+      <div className="card">
+        <div className="card-body">
+          <div className="d-flex justify-content-center">
+            <div className="spinner-border spinner-border-sm" role="status">
+              <span className="visually-hidden">Loading filters...</span>
+            </div>
+          </div>
+        </div>
+      </div>
     );
-    // Optionally open/focus specification accordion if a category is selected
-    if (checked && availableFilters.specificationFilters && Object.keys(availableFilters.specificationFilters).length > 0) {
-      if (!activeAccordionKeys.includes('1')) {
-        setActiveAccordionKeys(prev => [...prev, '1']);
-      }
-    }
-  };
-
-  const handleManufacturerChange = (e) => {
-    const { value, checked } = e.target;
-    setSelectedManufacturers(prev => 
-      checked ? [...prev, value] : prev.filter(man => man !== value)
-    );
-  };
-
-  const handleTagChange = (e) => {
-    const { value, checked } = e.target;
-    setSelectedTags(prev =>
-      checked ? [...prev, value] : prev.filter(tag => tag !== value)
-    );
-  };
-
-  const handleSpecChange = (specKey, value) => {
-    setSpecFilters(prev => ({ ...prev, [specKey]: value }));
-  };
-  
-  const handleMultiSelectSpecChange = (specKey, e) => {
-    const { value, checked } = e.target;
-    setSpecFilters(prev => {
-      const existingValues = prev[specKey] ? String(prev[specKey]).split(',').filter(v => v) : [];
-      let newValues;
-      if (checked) {
-        newValues = [...existingValues, value];
-      } else {
-        newValues = existingValues.filter(v => v !== value);
-      }
-      return { ...prev, [specKey]: newValues.join(',') };
-    });
-  };
-
-  const applyFilters = useCallback(() => {
-    const filtersToApply = {};
-    if (selectedCategories.length > 0) filtersToApply.category = selectedCategories.join(',');
-    if (selectedManufacturers.length > 0) filtersToApply.manufacturer = selectedManufacturers.join(',');
-    if (minPrice) filtersToApply.minPrice = minPrice;
-    if (maxPrice) filtersToApply.maxPrice = maxPrice;
-    if (selectedTags.length > 0) filtersToApply.tags = selectedTags.join(',');
-    if (minRating) filtersToApply.minRating = minRating;
-
-    for (const specKey in specFilters) {
-      if (specFilters[specKey] && String(specFilters[specKey]).trim() !== '') {
-        filtersToApply[`spec_${specKey}`] = specFilters[specKey];
-      }
-    }
-    onFilterChange(filtersToApply);
-  }, [selectedCategories, selectedManufacturers, minPrice, maxPrice, selectedTags, minRating, specFilters, onFilterChange]);
-
-  const clearFilters = () => {
-    setSelectedCategories([]);
-    setSelectedManufacturers([]);
-    setMinPrice('');
-    setMaxPrice('');
-    setSelectedTags([]);
-    setMinRating('');
-    setSpecFilters({});
-    setActiveAccordionKeys(['0']); // Reset accordion to default
-    onFilterChange({});
-  };
-
-  // Determine which specification filters to show based on selected categories
-  const getRelevantSpecFilters = () => {
-    if (!availableFilters || !availableFilters.specificationFilters) return {};
-    if (selectedCategories.length === 0) {
-      // If no category selected, show all general specs or a limited set
-      // For now, let's show all if no category is selected, can be refined
-      return availableFilters.specificationFilters;
-    }
-
-    // This is a placeholder for more complex logic.
-    // A more robust solution would involve mapping categories to relevant spec keys on the backend
-    // or having a predefined mapping on the frontend.
-    // For now, we'll show all spec filters if any category is selected.
-    // A simple improvement: only show spec filters if a category is selected.
-    return availableFilters.specificationFilters;
-  };
-
-  const relevantSpecFilters = getRelevantSpecFilters();
-
-  if (!availableFilters) return <Card className="mb-4"><Card.Body><Spinner animation="border" size="sm" /> Loading filters...</Card.Body></Card>;
+  }
 
   return (
-    <Card className="mb-4 shadow-sm">
-      <Card.Header as="h5" className="bg-light">Filter Products</Card.Header>
-      <Card.Body>
-        <Accordion activeKey={activeAccordionKeys} onSelect={(keys) => setActiveAccordionKeys(keys)} alwaysOpen>
-          <Accordion.Item eventKey="0">
-            <Accordion.Header>Core Filters</Accordion.Header>
-            <Accordion.Body>
-              {availableFilters.categories && availableFilters.categories.length > 0 && (
-                <Form.Group className="mb-3">
-                  <Form.Label><strong>Categories</strong></Form.Label>
-                  <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #eee', padding: '10px' }}>
-                  {availableFilters.categories?.map(cat => (
-                    <Form.Check 
-                      type="checkbox" 
-                      key={cat} 
-                      label={cat} 
-                      value={cat} 
-                      checked={selectedCategories.includes(cat)}
-                      onChange={handleCategoryChange} 
-                    />
-                  ))}
-                  </div>
-                </Form.Group>
-              )}
-
-              {availableFilters.manufacturers && availableFilters.manufacturers.length > 0 && (
-                <Form.Group className="mb-3">
-                  <Form.Label><strong>Manufacturers</strong></Form.Label>
-                  <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #eee', padding: '10px' }}>
-                  {availableFilters.manufacturers?.map(man => (
-                    <Form.Check 
-                      type="checkbox" 
-                      key={man} 
-                      label={man} 
-                      value={man} 
-                      checked={selectedManufacturers.includes(man)}
-                      onChange={handleManufacturerChange} 
-                    />
-                  ))}
-                  </div>
-                </Form.Group>
-              )}
-              
-              {availableFilters.priceRange && (availableFilters.priceRange.min !== undefined || availableFilters.priceRange.max !== undefined) && (
-                <Form.Group className="mb-3">
-                  <Form.Label><strong>Price Range</strong></Form.Label>
-                  <Row>
-                    <Col>
-                      <InputGroup size="sm">
-                        <InputGroup.Text>$</InputGroup.Text>
-                        <FormControl 
-                          type="number" 
-                          placeholder={`Min (${availableFilters.priceRange?.min || 0})`} 
-                          value={minPrice} 
-                          onChange={(e) => setMinPrice(e.target.value)} 
-                          min={availableFilters.priceRange?.min || 0}
-                        />
-                      </InputGroup>
-                    </Col>
-                    <Col>
-                      <InputGroup size="sm">
-                        <InputGroup.Text>$</InputGroup.Text>
-                        <FormControl 
-                          type="number" 
-                          placeholder={`Max (${availableFilters.priceRange?.max || 5000})`} 
-                          value={maxPrice} 
-                          onChange={(e) => setMaxPrice(e.target.value)} 
-                          max={availableFilters.priceRange?.max || 10000}
-                        />
-                      </InputGroup>
-                    </Col>
-                  </Row>
-                </Form.Group>
-              )}
-
-              {availableFilters.tags && availableFilters.tags.length > 0 && (
-                <Form.Group className="mb-3">
-                  <Form.Label><strong>Tags</strong></Form.Label>
-                  <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #eee', padding: '10px' }}>
-                    {availableFilters.tags?.map(tag => (
-                      <Form.Check 
-                        type="checkbox" 
-                        key={tag} 
-                        label={tag} 
-                        value={tag} 
-                        checked={selectedTags.includes(tag)}
-                        onChange={handleTagChange} 
-                      />
-                    ))}
-                  </div>
-                </Form.Group>
-              )}
-
-              <Form.Group className="mb-3">
-                <Form.Label><strong>Minimum Rating</strong></Form.Label>
-                <Form.Select size="sm" value={minRating} onChange={(e) => setMinRating(e.target.value)}>
-                  <option value="">Any</option>
-                  <option value="5">★★★★★</option>
-                  <option value="4">★★★★☆ & Up</option>
-                  <option value="3">★★★☆☆ & Up</option>
-                  <option value="2">★★☆☆☆ & Up</option>
-                  <option value="1">★☆☆☆☆ & Up</option>
-                </Form.Select>
-              </Form.Group>
-            </Accordion.Body>
-          </Accordion.Item>
-
-          {Object.keys(relevantSpecFilters).length > 0 && (
-            <Accordion.Item eventKey="1">
-              <Accordion.Header>Specifications</Accordion.Header>
-              <Accordion.Body>
-                {Object.entries(relevantSpecFilters).map(([specKey, values]) => (
-                  <Form.Group className="mb-3" key={specKey}>
-                    <Form.Label><strong>{specKey.charAt(0).toUpperCase() + specKey.slice(1).replace(/([A-Z])/g, ' $1')}</strong></Form.Label>
-                    <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #eee', padding: '10px' }}>
-                      {values.map(val => (
-                        <Form.Check
-                          type="checkbox"
-                          key={`${specKey}-${val}`}
-                          label={String(val)}
-                          value={String(val)}
-                          checked={specFilters[specKey]?.split(',').includes(String(val)) || false}
-                          onChange={(e) => handleMultiSelectSpecChange(specKey, e)}
-                        />
-                      ))}
-                    </div>
-                  </Form.Group>
-                ))}
-              </Accordion.Body>
-            </Accordion.Item>
-          )}
-        </Accordion>
-
-        <div className="mt-4 d-flex justify-content-between">
-          <Button variant="primary" onClick={applyFilters} size="sm">Apply Filters</Button>
-          <Button variant="outline-secondary" onClick={clearFilters} size="sm">Clear All</Button>
+    <div className="card">
+      <div className="card-header">
+        <div className="d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">Filters</h5>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={onClearFilters}
+          >
+            Clear All
+          </button>
         </div>
-      </Card.Body>
-    </Card>
+      </div>
+      <div className="card-body">
+        {/* Category Filter */}
+        <div className="mb-3">
+          <button
+            className="btn btn-link p-0 text-decoration-none fw-semibold text-start w-100 d-flex justify-content-between align-items-center"
+            type="button"
+            onClick={() => toggleSection('category')}
+          >
+            Category
+            <i className={`bi bi-chevron-${openSections.category ? 'up' : 'down'}`}></i>
+          </button>
+          {openSections.category && (
+            <div className="mt-2">
+              <select
+                className="form-select"
+                value={filters.category || ''}
+                onChange={(e) => handleFilterChange('category', e.target.value)}
+              >
+                <option value="">All Categories</option>
+                {availableFilters.categories?.map(category => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Price Range Filter */}
+        <div className="mb-3">
+          <button
+            className="btn btn-link p-0 text-decoration-none fw-semibold text-start w-100 d-flex justify-content-between align-items-center"
+            type="button"
+            onClick={() => toggleSection('priceRange')}
+          >
+            Price Range
+            <i className={`bi bi-chevron-${openSections.priceRange ? 'up' : 'down'}`}></i>
+          </button>
+          {openSections.priceRange && (
+            <div className="mt-2">
+              <div className="row g-2">
+                <div className="col-6">
+                  <input
+                    type="number"
+                    className="form-control"
+                    placeholder="Min"
+                    value={filters.priceRange?.min || ''}
+                    onChange={(e) => handlePriceChange('min', e.target.value)}
+                  />
+                </div>
+                <div className="col-6">
+                  <input
+                    type="number"
+                    className="form-control"
+                    placeholder="Max"
+                    value={filters.priceRange?.max || ''}
+                    onChange={(e) => handlePriceChange('max', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Brand Filter */}
+        {availableFilters.brands && availableFilters.brands.length > 0 && (
+          <div className="mb-3">
+            <button
+              className="btn btn-link p-0 text-decoration-none fw-semibold text-start w-100 d-flex justify-content-between align-items-center"
+              type="button"
+              onClick={() => toggleSection('brand')}
+            >
+              Brand
+              <i className={`bi bi-chevron-${openSections.brand ? 'up' : 'down'}`}></i>
+            </button>
+            {openSections.brand && (
+              <div className="mt-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                {availableFilters.brands.map(brand => (
+                  <div key={brand} className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id={`brand-${brand}`}
+                      checked={filters.brands?.includes(brand) || false}
+                      onChange={(e) => handleCheckboxChange('brands', brand, e.target.checked)}
+                    />
+                    <label className="form-check-label" htmlFor={`brand-${brand}`}>
+                      {brand}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Condition Filter */}
+        {availableFilters.conditions && availableFilters.conditions.length > 0 && (
+          <div className="mb-3">
+            <button
+              className="btn btn-link p-0 text-decoration-none fw-semibold text-start w-100 d-flex justify-content-between align-items-center"
+              type="button"
+              onClick={() => toggleSection('condition')}
+            >
+              Condition
+              <i className={`bi bi-chevron-${openSections.condition ? 'up' : 'down'}`}></i>
+            </button>
+            {openSections.condition && (
+              <div className="mt-2">
+                {availableFilters.conditions.map(condition => (
+                  <div key={condition} className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id={`condition-${condition}`}
+                      checked={filters.conditions?.includes(condition) || false}
+                      onChange={(e) => handleCheckboxChange('conditions', condition, e.target.checked)}
+                    />
+                    <label className="form-check-label" htmlFor={`condition-${condition}`}>
+                      {condition}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Location Filter */}
+        {availableFilters.locations && availableFilters.locations.length > 0 && (
+          <div className="mb-3">
+            <button
+              className="btn btn-link p-0 text-decoration-none fw-semibold text-start w-100 d-flex justify-content-between align-items-center"
+              type="button"
+              onClick={() => toggleSection('location')}
+            >
+              Location
+              <i className={`bi bi-chevron-${openSections.location ? 'up' : 'down'}`}></i>
+            </button>
+            {openSections.location && (
+              <div className="mt-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                {availableFilters.locations.map(location => (
+                  <div key={location} className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id={`location-${location}`}
+                      checked={filters.locations?.includes(location) || false}
+                      onChange={(e) => handleCheckboxChange('locations', location, e.target.checked)}
+                    />
+                    <label className="form-check-label" htmlFor={`location-${location}`}>
+                      {location}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

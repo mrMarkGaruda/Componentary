@@ -28,6 +28,11 @@ const Navbar = () => {
               <i className="bi bi-house-door me-1"></i> Home
             </Link>
           </li>
+          <li>
+            <Link to="/products" className="nav-link px-2 link-dark">
+              <i className="bi bi-grid me-1"></i> Products
+            </Link>
+          </li>
           {(authenticated && (userRole === 'admin' || userRole === 'seller')) ? (
             <li>
               <Link to="/product/new" className="nav-link px-2 link-dark">
@@ -66,6 +71,31 @@ const Navbar = () => {
                     <span className="badge bg-secondary">{userRole?.charAt(0).toUpperCase() + userRole?.slice(1)}</span>
                   </div>
                 </li>
+                <li><hr className="dropdown-divider" /></li>
+                <li>
+                  <Link className="dropdown-item" to="/profile">
+                    <i className="bi bi-person me-1"></i> Profile
+                  </Link>
+                </li>
+                <li>
+                  <Link className="dropdown-item" to="/orders">
+                    <i className="bi bi-bag me-1"></i> Order History
+                  </Link>
+                </li>
+                {userRole === 'admin' && (
+                  <li>
+                    <Link className="dropdown-item" to="/admin">
+                      <i className="bi bi-shield-check me-1"></i> Admin Dashboard
+                    </Link>
+                  </li>
+                )}
+                {(userRole === 'seller' || userRole === 'admin') && (
+                  <li>
+                    <Link className="dropdown-item" to="/seller">
+                      <i className="bi bi-shop me-1"></i> Seller Dashboard
+                    </Link>
+                  </li>
+                )}
                 <li><hr className="dropdown-divider" /></li>
                 <li>
                   <button className="dropdown-item text-danger" onClick={handleLogout}>

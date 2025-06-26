@@ -3,7 +3,6 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { fetchProductsWithFilters, getProductFilterOptions } from '../utils/api';
 import ProductList from '../components/ProductList';
 import ProductFilters from '../components/ProductFilters';
-import { Pagination, Form, Row, Col, Spinner, Alert, Button } from 'react-bootstrap';
 import { isAuthenticated, getCurrentUser } from '../utils/auth';
 
 const HomePage = () => {
@@ -121,13 +120,18 @@ const HomePage = () => {
                   <i className="bi bi-plus-circle me-2"></i>Add Your Product
                 </Link>
               ) : authenticated ? (
-                 <Link to="/products" className="btn btn-primary btn-lg"> {/* Changed this to /products or similar if you have a dedicated products page */} 
+                <Link to="/products" className="btn btn-primary btn-lg">
                   <i className="bi bi-search me-2"></i>Browse Products
                 </Link>
               ) : (
-                <Link to="/signup" className="btn btn-primary btn-lg">
-                  <i className="bi bi-person-plus me-2"></i>Sign Up & Shop
-                </Link>
+                <div>
+                  <Link to="/products" className="btn btn-primary btn-lg me-3">
+                    <i className="bi bi-search me-2"></i>Browse Products
+                  </Link>
+                  <Link to="/signup" className="btn btn-outline-light btn-lg">
+                    <i className="bi bi-person-plus me-2"></i>Sign Up
+                  </Link>
+                </div>
               )}
             </Col>
             <Col lg={6} className="d-none d-lg-block text-center">
@@ -152,7 +156,12 @@ const HomePage = () => {
                 currentFilters={filters} 
               />
             ) : (
-              <div className="text-center"><Spinner animation="border" /> <p>Loading filters...</p></div>
+              <div className="text-center">
+                <div className="spinner-border" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+                <p>Loading filters...</p>
+              </div>
             )}
           </Col>
 
@@ -193,11 +202,23 @@ const HomePage = () => {
             <p className="text-muted mb-3">Showing {productsData.products.length} of {productsData.totalProducts} products</p>
 
             {loading ? (
-              <div className="text-center"><Spinner animation="border" style={{ width: '3rem', height: '3rem' }} /> <p>Loading products...</p></div>
+              <div className="text-center">
+                <div className="spinner-border" role="status" style={{ width: '3rem', height: '3rem' }}>
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+                <p>Loading products...</p>
+              </div>
             ) : error ? (
               <Alert variant="danger">{error}</Alert>
             ) : (
-              <ProductList products={productsData.products} />
+              <>
+                <ProductList products={productsData.products} />
+                <div className="text-center mt-4">
+                  <Link to="/products" className="btn btn-outline-primary btn-lg">
+                    <i className="bi bi-grid me-2"></i>View All Products
+                  </Link>
+                </div>
+              </>
             )}
 
             {!loading && productsData.totalPages > 1 && (

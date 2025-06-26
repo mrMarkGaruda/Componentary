@@ -5,12 +5,105 @@ const express = require('express')
 const cors = require('cors')
 const morgan = require('morgan')
 const cookieParser = require('cookie-parser')
+const http = require('http')
+const socketIo = require('socket.io')
+const jwt = require('jsonwebtoken')
 const connectDB = require('./config/db')
 let redisClient = require('./config/redis')
+const Chat = require('./models/Chat')
 // Don't load neo4j here - it will be loaded after env vars are verified
 const errorHandler = require('./middleware/error')
 
 const app = express()
+const server = http.createServer(app)
+
+// Socket.IO setup
+const io = socketIo(server, {
+  cors: {
+    origin: [process.env.CORS_ORIGIN || 'http://localhost:5000', 'http://localhost:5000', 'http://client:5000'],
+    credentials: true
+  }
+})
+
+// Socket.IO authentication middleware
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token
+    if (!token) {
+      return next(new Error('Authentication error'))
+    }
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const User = require('./models/User')
+    const user = await User.findById(decoded.id)
+    
+    if (!user) {
+      return next(new Error('Authentication error'))
+    }
+    
+    socket.userId = user._id.toString()
+    socket.user = user
+    next()
+  } catch (error) {
+    next(new Error('Authentication error'))
+  }
+})
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log(`User ${socket.user.name} connected`)
+  
+  // Join user to their own room
+  socket.join(socket.userId)
+  
+  socket.on('join-chat', ({ userId, sellerId }) => {
+    const chatRoom = [userId, sellerId].sort().join('-')
+    socket.join(chatRoom)
+    console.log(`User joined chat room: ${chatRoom}`)
+  })
+  
+  socket.on('send-message', async ({ recipientId, content }) => {
+    try {
+      let chat = await Chat.findOne({
+        participants: { $all: [socket.userId, recipientId] }
+      })
+      
+      if (!chat) {
+        chat = new Chat({
+          participants: [socket.userId, recipientId],
+          messages: []
+        })
+      }
+      
+      const newMessage = {
+        sender: socket.userId,
+        content,
+        timestamp: new Date(),
+        read: false
+      }
+      
+      chat.messages.push(newMessage)
+      chat.lastMessage = new Date()
+      
+      await chat.save()
+      await chat.populate('messages.sender', 'name email')
+      
+      const savedMessage = chat.messages[chat.messages.length - 1]
+      
+      // Send to both users
+      const chatRoom = [socket.userId, recipientId].sort().join('-')
+      io.to(chatRoom).emit('new-message', savedMessage)
+      
+    } catch (error) {
+      console.error('Error sending message:', error)
+      socket.emit('error', { message: 'Failed to send message' })
+    }
+  })
+  
+  socket.on('disconnect', () => {
+    console.log(`User ${socket.user.name} disconnected`)
+  })
+})
 
 // Environment variables are already loaded at the top
 console.log('Environment Variables:', {
@@ -98,6 +191,10 @@ app.use('/api/products', require('./routes/products'))
 app.use('/api/orders', require('./routes/orders'))
 app.use('/api/cart', require('./routes/cart'))
 app.use('/api/recommendations', require('./routes/recommendations'))
+app.use('/api/admin', require('./routes/admin'))
+app.use('/api/seller', require('./routes/seller'))
+app.use('/api/user', require('./routes/user'))
+app.use('/api/chat', require('./routes/chat'))
 
 // 404 handler - Use '*' string instead of regex to avoid path-to-regexp error
 app.use('*', (req, res) => {
@@ -107,4 +204,10 @@ app.use('*', (req, res) => {
 // Error handler
 app.use(errorHandler)
 
+// Make io available to routes
+app.set('io', io)
+
 module.exports = app
+
+// Export both app and server for server.js
+module.exports.server = server

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { fetchProductById, deleteProduct, fetchBoughtTogether } from '../utils/api';
-import { isAuthenticated, getToken, getCurrentUser } from '../utils/auth'; // Added getCurrentUser
+import { isAuthenticated, getToken, getCurrentUser } from '../utils/auth';
 import { useCart } from '../contexts/CartContext';
+import ProductReviews from '../components/ProductReviews';
+import Chat from '../components/Chat';
 import noImage from '../assets/no-image.png';
 
 const ProductDetailPage = () => {
@@ -14,8 +16,9 @@ const ProductDetailPage = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [boughtTogether, setBoughtTogether] = useState([]);
+  const [showChat, setShowChat] = useState(false);
   const authenticated = isAuthenticated();
-  const user = getCurrentUser(); // Ensure user is defined here
+  const user = getCurrentUser();
   const { addToCart } = useCart();
 
   useEffect(() => {
@@ -171,6 +174,17 @@ const ProductDetailPage = () => {
                   <i className="bi bi-cart-plus me-2"></i>
                   Add to Cart
                 </button>
+                
+                {/* Chat with Seller Button */}
+                {authenticated && user?.id !== product.seller?._id && (
+                  <button 
+                    className="btn btn-outline-info" 
+                    onClick={() => setShowChat(true)}
+                  >
+                    <i className="bi bi-chat-dots me-2"></i>
+                    Chat with Seller
+                  </button>
+                )}
               </div>
               
               <div className="d-flex gap-2 mt-4">
@@ -213,6 +227,27 @@ const ProductDetailPage = () => {
           </div>
         </div>
       </div>
+      
+      {/* Product Reviews Section */}
+      <div className="container py-4">
+        <ProductReviews 
+          productId={id} 
+          reviews={product.ratings || []} 
+          onReviewAdded={() => {
+            // Refresh product data to show new review
+            fetchProductById(id).then(setProduct);
+          }} 
+        />
+      </div>
+      
+      {/* Chat Modal */}
+      {showChat && product.seller && (
+        <Chat 
+          sellerId={product.seller._id} 
+          sellerName={product.seller.name} 
+          onClose={() => setShowChat(false)} 
+        />
+      )}
     </div>
   );
 };
