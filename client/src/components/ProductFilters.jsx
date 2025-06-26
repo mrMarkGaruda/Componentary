@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 
 const ProductFilters = ({ 
-  filters, 
+  filters = {}, // Default to empty object
   onFilterChange, 
   availableFilters, 
   onClearFilters 
 }) => {
+  // Defensive: ensure filters is always an object
+  const safeFilters = typeof filters === 'object' && filters !== null ? filters : {};
   const [openSections, setOpenSections] = useState({
     category: true,
     priceRange: true,
@@ -15,10 +17,7 @@ const ProductFilters = ({
   });
 
   const toggleSection = (section) => {
-    setOpenSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
+    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -26,23 +25,19 @@ const ProductFilters = ({
   };
 
   const handlePriceChange = (type, value) => {
-    const newPriceRange = {
-      ...filters.priceRange,
-      [type]: value
-    };
-    onFilterChange('priceRange', newPriceRange);
+    const priceRange = { ...safeFilters.priceRange };
+    priceRange[type] = value;
+    onFilterChange('priceRange', priceRange);
   };
 
   const handleCheckboxChange = (filterType, value, checked) => {
-    const currentValues = filters[filterType] || [];
+    const currentValues = safeFilters[filterType] || [];
     let newValues;
-    
     if (checked) {
       newValues = [...currentValues, value];
     } else {
       newValues = currentValues.filter(v => v !== value);
     }
-    
     onFilterChange(filterType, newValues);
   };
 
@@ -89,7 +84,7 @@ const ProductFilters = ({
             <div className="mt-2">
               <select
                 className="form-select"
-                value={filters.category || ''}
+                value={safeFilters.category || ''}
                 onChange={(e) => handleFilterChange('category', e.target.value)}
               >
                 <option value="">All Categories</option>
@@ -121,7 +116,7 @@ const ProductFilters = ({
                     type="number"
                     className="form-control"
                     placeholder="Min"
-                    value={filters.priceRange?.min || ''}
+                    value={safeFilters.priceRange?.min || ''}
                     onChange={(e) => handlePriceChange('min', e.target.value)}
                   />
                 </div>
@@ -130,7 +125,7 @@ const ProductFilters = ({
                     type="number"
                     className="form-control"
                     placeholder="Max"
-                    value={filters.priceRange?.max || ''}
+                    value={safeFilters.priceRange?.max || ''}
                     onChange={(e) => handlePriceChange('max', e.target.value)}
                   />
                 </div>
@@ -158,7 +153,7 @@ const ProductFilters = ({
                       className="form-check-input"
                       type="checkbox"
                       id={`brand-${brand}`}
-                      checked={filters.brands?.includes(brand) || false}
+                      checked={safeFilters.brands?.includes(brand) || false}
                       onChange={(e) => handleCheckboxChange('brands', brand, e.target.checked)}
                     />
                     <label className="form-check-label" htmlFor={`brand-${brand}`}>
@@ -190,7 +185,7 @@ const ProductFilters = ({
                       className="form-check-input"
                       type="checkbox"
                       id={`condition-${condition}`}
-                      checked={filters.conditions?.includes(condition) || false}
+                      checked={safeFilters.conditions?.includes(condition) || false}
                       onChange={(e) => handleCheckboxChange('conditions', condition, e.target.checked)}
                     />
                     <label className="form-check-label" htmlFor={`condition-${condition}`}>
@@ -222,7 +217,7 @@ const ProductFilters = ({
                       className="form-check-input"
                       type="checkbox"
                       id={`location-${location}`}
-                      checked={filters.locations?.includes(location) || false}
+                      checked={safeFilters.locations?.includes(location) || false}
                       onChange={(e) => handleCheckboxChange('locations', location, e.target.checked)}
                     />
                     <label className="form-check-label" htmlFor={`location-${location}`}>

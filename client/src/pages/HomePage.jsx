@@ -4,6 +4,7 @@ import { fetchProductsWithFilters, getProductFilterOptions } from '../utils/api'
 import ProductList from '../components/ProductList';
 import ProductFilters from '../components/ProductFilters';
 import { isAuthenticated, getCurrentUser } from '../utils/auth';
+import { Row, Col, Form, Alert, Pagination } from 'react-bootstrap';
 
 const HomePage = () => {
   const [productsData, setProductsData] = useState({ products: [], totalPages: 1, currentPage: 1, totalProducts: 0 });
