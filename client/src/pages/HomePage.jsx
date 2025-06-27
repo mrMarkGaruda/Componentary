@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { fetchProductsWithFilters, getProductFilterOptions } from '../utils/api';
 import ProductList from '../components/ProductList';
 import ProductFilters from '../components/ProductFilters';
-import { isAuthenticated, getCurrentUser } from '../utils/auth';
+import { isAuthenticated, getCurrentUser, isTokenValid } from '../utils/auth';
 
 const HomePage = () => {
   const [productsData, setProductsData] = useState({ products: [], totalPages: 1, currentPage: 1, totalProducts: 0 });
@@ -76,19 +76,33 @@ const HomePage = () => {
       setTrendingProducts(trendingResponse.products);
 
       // Load personalized recommendations if user is authenticated
-      if (authenticated && user) {
+      if (authenticated && user && isTokenValid()) {
         try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            console.log('No authentication token found');
+            return;
+          }
+
           const recommendationsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/recommendations/user/${user.id}`, {
             headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
             }
           });
+          
           if (recommendationsResponse.ok) {
             const recommendations = await recommendationsResponse.json();
             setRecommendedProducts(recommendations.slice(0, 8));
+          } else if (recommendationsResponse.status === 401) {
+            console.log('Authentication failed, clearing invalid token');
+            localStorage.removeItem('token');
+            localStorage.removeItem('currentUser');
+          } else {
+            console.log('Failed to load recommendations:', recommendationsResponse.status);
           }
         } catch (err) {
-          console.log('Recommendations not available');
+          console.log('Recommendations not available:', err.message);
         }
       }
 

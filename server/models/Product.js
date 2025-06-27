@@ -19,7 +19,7 @@ const productSchema = new mongoose.Schema({
   subcategory: { type: String, trim: true }, // e.g., "Gaming Keyboard", "Mechanical"
   manufacturer: { type: String, required: true, trim: true },
   modelNumber: { type: String, trim: true },
-  sku: { type: String, unique: true, sparse: true }, // Stock Keeping Unit
+  sku: { type: String, sparse: true }, // Stock Keeping Unit
   specifications: { type: mongoose.Schema.Types.Mixed },
   features: [String], // Key features array
   tags: [String],

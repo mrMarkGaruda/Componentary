@@ -66,7 +66,9 @@ const ProductsPage = () => {
         limit: 12
       };
 
+      console.log('Fetching products with params:', queryParams); // Debug log
       const data = await fetchProductsWithFilters(queryParams);
+      console.log('Received data:', data); // Debug log
       setProductsData(data);
     } catch (err) {
       setError('Failed to load products. Please try again later.');
@@ -124,8 +126,10 @@ const ProductsPage = () => {
   };
 
   const handleSortChange = (newSortBy, newSortOrder) => {
+    console.log('Sort change:', { newSortBy, newSortOrder }); // Debug log
     setSortBy(newSortBy);
     setSortOrder(newSortOrder);
+    // Use the new values directly instead of state variables
     updateURL({ 
       filters, 
       searchTerm, 

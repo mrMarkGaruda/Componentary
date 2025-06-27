@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
-  email: { type: String, required: true, unique: true, trim: true, lowercase: true },
+  email: { type: String, required: true, trim: true, lowercase: true },
   password: { type: String, required: true, minlength: 6 },
   role: { type: String, enum: ['admin', 'seller', 'customer'], default: 'customer' },
   avatar: { type: String, default: null },
@@ -184,14 +184,17 @@ userSchema.virtual('fullName').get(function() {
 });
 
 userSchema.virtual('defaultAddress').get(function() {
+  if (!this.addresses || this.addresses.length === 0) return null;
   return this.addresses.find(addr => addr.isDefault) || this.addresses[0];
 });
 
 userSchema.virtual('cartItemsCount').get(function() {
-  return this.cart.reduce((total, item) => total + item.quantity, 0);
+  if (!this.cart || this.cart.length === 0) return 0;
+  return this.cart.reduce((total, item) => total + (item.quantity || 0), 0);
 });
 
 userSchema.virtual('wishlistItemsCount').get(function() {
+  if (!this.wishlist || this.wishlist.length === 0) return 0;
   return this.wishlist.length;
 });
 

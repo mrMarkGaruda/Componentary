@@ -1,20 +1,46 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { isAuthenticated, getCurrentUser } from '../utils/auth';
 import { useCart } from '../contexts/CartContext';
-import noImage from '../assets/no-image.png';
 
 const ProductCard = ({ product }) => {
   const authenticated = isAuthenticated();
   const user = getCurrentUser();
   const userRole = user?.role;
   const { addToCart } = useCart();
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
   
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
     addToCart(product);
   };
+
+  const handleImageError = () => {
+    setImageError(true);
+    setImageLoading(false);
+  };
+
+  const handleImageLoad = () => {
+    setImageLoading(false);
+  };
+
+  const renderFallbackImage = () => (
+    <div 
+      className="d-flex align-items-center justify-content-center"
+      style={{ 
+        height: '220px', 
+        background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)',
+        border: '1px solid rgba(255,255,255,0.1)'
+      }}
+    >
+      <div className="text-center">
+        <i className="bi bi-image fs-1 text-muted opacity-50 mb-2"></i>
+        <div className="small text-muted">No Image</div>
+      </div>
+    </div>
+  );
 
   const renderStars = (rating) => {
     const stars = [];
@@ -41,18 +67,41 @@ const ProductCard = ({ product }) => {
     <div className="col">
       <div className="card h-100 product-card">
         <div className="position-relative overflow-hidden">
-          <img 
-            src={product.image} 
-            className="card-img-top" 
-            alt={product.name}
-            style={{ height: '220px', objectFit: 'cover', transition: 'transform 0.3s ease' }}
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = noImage;
-            }}
-            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-          />
+          {imageError || !product.image ? (
+            renderFallbackImage()
+          ) : (
+            <>
+              {imageLoading && (
+                <div 
+                  className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+                  style={{ 
+                    height: '220px',
+                    background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)',
+                    zIndex: 1
+                  }}
+                >
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              )}
+              <img 
+                src={product.image} 
+                className="card-img-top" 
+                alt={product.name}
+                style={{ 
+                  height: '220px', 
+                  objectFit: 'cover', 
+                  transition: 'transform 0.3s ease',
+                  opacity: imageLoading ? 0 : 1
+                }}
+                onError={handleImageError}
+                onLoad={handleImageLoad}
+                onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+              />
+            </>
+          )}
           {product.averageRating > 0 && (
             <div className="position-absolute top-0 end-0 m-2">
               <span className="badge bg-dark bg-opacity-75 text-warning">
