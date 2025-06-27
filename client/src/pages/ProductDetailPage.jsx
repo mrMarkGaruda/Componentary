@@ -4,7 +4,7 @@ import { fetchProductById, deleteProduct, fetchBoughtTogether } from '../utils/a
 import { isAuthenticated, getToken, getCurrentUser } from '../utils/auth';
 import { useCart } from '../contexts/CartContext';
 import ProductReviews from '../components/ProductReviews';
-import Chat from '../components/Chat';
+import { ChatButton } from '../components/Chat';
 import noImage from '../assets/no-image.png';
 
 const ProductDetailPage = () => {
@@ -16,7 +16,6 @@ const ProductDetailPage = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [boughtTogether, setBoughtTogether] = useState([]);
-  const [showChat, setShowChat] = useState(false);
   const authenticated = isAuthenticated();
   const user = getCurrentUser();
   const { addToCart } = useCart();
@@ -177,13 +176,11 @@ const ProductDetailPage = () => {
                 
                 {/* Chat with Seller Button */}
                 {authenticated && user?.id !== product.seller?._id && (
-                  <button 
-                    className="btn btn-outline-info" 
-                    onClick={() => setShowChat(true)}
-                  >
-                    <i className="bi bi-chat-dots me-2"></i>
-                    Chat with Seller
-                  </button>
+                  <ChatButton 
+                    sellerId={product.seller?._id} 
+                    sellerName={product.seller?.name} 
+                    productId={product._id}
+                  />
                 )}
               </div>
               
@@ -239,15 +236,6 @@ const ProductDetailPage = () => {
           }} 
         />
       </div>
-      
-      {/* Chat Modal */}
-      {showChat && product.seller && (
-        <Chat 
-          sellerId={product.seller._id} 
-          sellerName={product.seller.name} 
-          onClose={() => setShowChat(false)} 
-        />
-      )}
     </div>
   );
 };

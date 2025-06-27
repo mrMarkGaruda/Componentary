@@ -103,6 +103,7 @@ services:
       NEO4J_PASSWORD: neo4j123
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
       CORS_ORIGIN: http://localhost:5000
+      AI_SERVICE_URL: http://smollm-ai:8000
     ports:
       - "3001:3001"
     volumes:
@@ -112,6 +113,7 @@ services:
       - mongo
       - redis
       - neo4j
+      - smollm-ai
     networks:
       - componentary-network
 
@@ -135,6 +137,27 @@ services:
     networks:
       - componentary-network
 
+  # SmolLM2 AI Chat Service
+  smollm-ai:
+    build:
+      context: ./bitnet-ai
+      dockerfile: Dockerfile
+    container_name: componentary_smollm_ai
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ai_cache:/app/cache
+    networks:
+      - componentary-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2'
+        reservations:
+          memory: 1G
+
 volumes:
   mongo_data:
   redis_data:
@@ -142,6 +165,7 @@ volumes:
   neo4j_logs:
   neo4j_import:
   neo4j_plugins:
+  ai_cache:
 
 networks:
   componentary-network:
