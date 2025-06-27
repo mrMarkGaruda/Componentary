@@ -31,9 +31,13 @@ const ProductsPage = () => {
         newFilters[key] = value;
       }
     });
-    setSearchTerm(params.get('searchTerm') || '');
-    setSortBy(params.get('sortBy') || 'createdAt');
-    setSortOrder(params.get('sortOrder') || 'desc');
+    const searchTermFromURL = params.get('searchTerm') || '';
+    const sortByFromURL = params.get('sortBy') || 'createdAt';
+    const sortOrderFromURL = params.get('sortOrder') || 'desc';
+    
+    setSearchTerm(searchTermFromURL);
+    setSortBy(sortByFromURL);
+    setSortOrder(sortOrderFromURL);
     return newFilters;
   }, [location.search]);
 
@@ -66,9 +70,7 @@ const ProductsPage = () => {
         limit: 12
       };
 
-      console.log('Fetching products with params:', queryParams); // Debug log
       const data = await fetchProductsWithFilters(queryParams);
-      console.log('Received data:', data); // Debug log
       setProductsData(data);
     } catch (err) {
       setError('Failed to load products. Please try again later.');
@@ -125,18 +127,32 @@ const ProductsPage = () => {
     });
   };
 
-  const handleSortChange = (newSortBy, newSortOrder) => {
-    console.log('Sort change:', { newSortBy, newSortOrder }); // Debug log
+  const handleSortChange = async (newSortBy, newSortOrder) => {
     setSortBy(newSortBy);
     setSortOrder(newSortOrder);
-    // Use the new values directly instead of state variables
-    updateURL({ 
-      filters, 
-      searchTerm, 
-      sortBy: newSortBy, 
-      sortOrder: newSortOrder,
-      page: 1 
-    });
+    
+    // Fetch products immediately with new sorting without updating URL
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const queryParams = {
+        ...filters,
+        searchTerm: searchTerm || undefined,
+        sortBy: newSortBy,
+        sortOrder: newSortOrder,
+        page: 1, // Reset to first page when sorting
+        limit: 12
+      };
+
+      const data = await fetchProductsWithFilters(queryParams);
+      setProductsData(data);
+    } catch (err) {
+      setError('Failed to load products. Please try again later.');
+      console.error('Error fetching products:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePageChange = (pageNum) => {

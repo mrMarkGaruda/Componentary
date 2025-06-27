@@ -3,8 +3,43 @@ const Chat = require('../models/Chat');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
+// Simple rate limiting map to prevent API abuse
+const apiCallTracker = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const MAX_CALLS_PER_WINDOW = 30; // Max 30 API calls per minute per user
+
+// Rate limiting middleware
+const rateLimiter = (req, res, next) => {
+  const userId = req.user.id;
+  const now = Date.now();
+  
+  if (!apiCallTracker.has(userId)) {
+    apiCallTracker.set(userId, { count: 1, windowStart: now });
+    return next();
+  }
+  
+  const userTracker = apiCallTracker.get(userId);
+  
+  // Reset window if expired
+  if (now - userTracker.windowStart > RATE_LIMIT_WINDOW) {
+    userTracker.count = 1;
+    userTracker.windowStart = now;
+    return next();
+  }
+  
+  // Check if limit exceeded
+  if (userTracker.count >= MAX_CALLS_PER_WINDOW) {
+    return res.status(429).json({ 
+      message: 'Too many requests. Please wait before trying again.' 
+    });
+  }
+  
+  userTracker.count++;
+  next();
+};
+
 // Get chat history between user and seller
-router.get('/:sellerId', auth, async (req, res) => {
+router.get('/:sellerId', auth, rateLimiter, async (req, res) => {
   try {
     const { sellerId } = req.params;
     const userId = req.user.id;
@@ -33,7 +68,7 @@ router.get('/:sellerId', auth, async (req, res) => {
 });
 
 // Send a message
-router.post('/send', auth, async (req, res) => {
+router.post('/send', auth, rateLimiter, async (req, res) => {
   try {
     const { recipientId, content } = req.body;
     const senderId = req.user.id;
@@ -73,7 +108,7 @@ router.post('/send', auth, async (req, res) => {
 });
 
 // Get all chats for a user
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, rateLimiter, async (req, res) => {
   try {
     const userId = req.user.id;
     

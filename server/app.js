@@ -50,11 +50,20 @@ io.use(async (socket, next) => {
 })
 
 // Socket.IO connection handling
+const activeConnections = new Map(); // Track active connections per user
+
 io.on('connection', (socket) => {
-  console.log(`User ${socket.user.name} connected`)
+  console.log(`User ${socket.user.name} connected`);
+  
+  // Track active connections to prevent multiple connections per user
+  const existingConnection = activeConnections.get(socket.userId);
+  if (existingConnection) {
+    existingConnection.disconnect();
+  }
+  activeConnections.set(socket.userId, socket);
   
   // Join user to their own room
-  socket.join(socket.userId)
+  socket.join(socket.userId);
   
   socket.on('join-chat', ({ userId, sellerId }) => {
     const chatRoom = [userId, sellerId].sort().join('-')
@@ -64,45 +73,54 @@ io.on('connection', (socket) => {
   
   socket.on('send-message', async ({ recipientId, content }) => {
     try {
+      // Validate input
+      if (!recipientId || !content || content.trim() === '') {
+        socket.emit('error', { message: 'Invalid message data' });
+        return;
+      }
+
       let chat = await Chat.findOne({
         participants: { $all: [socket.userId, recipientId] }
-      })
+      });
       
       if (!chat) {
         chat = new Chat({
           participants: [socket.userId, recipientId],
           messages: []
-        })
+        });
       }
       
       const newMessage = {
         sender: socket.userId,
-        content,
+        content: content.trim(),
         timestamp: new Date(),
         read: false
-      }
+      };
       
-      chat.messages.push(newMessage)
-      chat.lastMessage = new Date()
+      chat.messages.push(newMessage);
+      chat.lastMessage = new Date();
       
-      await chat.save()
-      await chat.populate('messages.sender', 'name email')
+      await chat.save();
+      await chat.populate('messages.sender', 'name email');
       
-      const savedMessage = chat.messages[chat.messages.length - 1]
+      const savedMessage = chat.messages[chat.messages.length - 1];
       
-      // Send to both users
-      const chatRoom = [socket.userId, recipientId].sort().join('-')
-      io.to(chatRoom).emit('new-message', savedMessage)
+      // Send to both users in the chat room
+      const chatRoom = [socket.userId, recipientId].sort().join('-');
+      io.to(chatRoom).emit('new-message', savedMessage);
+      
+      console.log(`Message saved and sent to room ${chatRoom}`);
       
     } catch (error) {
-      console.error('Error sending message:', error)
-      socket.emit('error', { message: 'Failed to send message' })
+      console.error('Error sending message:', error);
+      socket.emit('error', { message: 'Failed to send message' });
     }
-  })
+  });
   
   socket.on('disconnect', () => {
-    console.log(`User ${socket.user.name} disconnected`)
-  })
+    console.log(`User ${socket.user.name} disconnected`);
+    activeConnections.delete(socket.userId);
+  });
 })
 
 // Environment variables are already loaded at the top

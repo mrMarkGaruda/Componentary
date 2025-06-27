@@ -5,6 +5,7 @@ import { Navigate } from 'react-router-dom';
 const OrderHistoryPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const user = getCurrentUser();
 
@@ -19,15 +20,23 @@ const OrderHistoryPage = () => {
 
   const fetchOrders = async () => {
     try {
+      setError(null);
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/orders`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
-      setOrders(data);
+      setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching orders:', error);
+      setError('Failed to load orders. Please try again later.');
+      setOrders([]); // Ensure orders is always an array
     }
     setLoading(false);
   };
@@ -152,6 +161,23 @@ const OrderHistoryPage = () => {
           <div className="spinner-border" role="status">
             <span className="visually-hidden">Loading...</span>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container py-4">
+        <div className="alert alert-danger" role="alert">
+          <i className="bi bi-exclamation-triangle me-2"></i>
+          {error}
+          <button 
+            className="btn btn-outline-danger btn-sm ms-3"
+            onClick={fetchOrders}
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
