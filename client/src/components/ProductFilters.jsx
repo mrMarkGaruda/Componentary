@@ -11,7 +11,7 @@ const ProductFilters = ({
   const [openSections, setOpenSections] = useState({
     category: true,
     priceRange: true,
-    brand: true,
+    manufacturer: true,
     condition: true,
     location: true
   });
@@ -25,20 +25,25 @@ const ProductFilters = ({
   };
 
   const handlePriceChange = (type, value) => {
-    const priceRange = { ...safeFilters.priceRange };
-    priceRange[type] = value;
-    onFilterChange('priceRange', priceRange);
+    // Send minPrice and maxPrice as separate filters to match backend API
+    if (type === 'min') {
+      onFilterChange('minPrice', value || '');
+    } else if (type === 'max') {
+      onFilterChange('maxPrice', value || '');
+    }
   };
 
   const handleCheckboxChange = (filterType, value, checked) => {
-    const currentValues = safeFilters[filterType] || [];
+    const currentValues = Array.isArray(safeFilters[filterType]) ? safeFilters[filterType] : 
+                         (safeFilters[filterType] ? safeFilters[filterType].split(',') : []);
     let newValues;
     if (checked) {
       newValues = [...currentValues, value];
     } else {
       newValues = currentValues.filter(v => v !== value);
     }
-    onFilterChange(filterType, newValues);
+    // Join array values with comma for backend compatibility
+    onFilterChange(filterType, newValues.length > 0 ? newValues.join(',') : '');
   };
 
   if (!availableFilters) {
@@ -116,7 +121,7 @@ const ProductFilters = ({
                     type="number"
                     className="form-control"
                     placeholder="Min"
-                    value={safeFilters.priceRange?.min || ''}
+                    value={safeFilters.minPrice || ''}
                     onChange={(e) => handlePriceChange('min', e.target.value)}
                   />
                 </div>
@@ -125,7 +130,7 @@ const ProductFilters = ({
                     type="number"
                     className="form-control"
                     placeholder="Max"
-                    value={safeFilters.priceRange?.max || ''}
+                    value={safeFilters.maxPrice || ''}
                     onChange={(e) => handlePriceChange('max', e.target.value)}
                   />
                 </div>
@@ -134,30 +139,30 @@ const ProductFilters = ({
           )}
         </div>
 
-        {/* Brand Filter */}
-        {availableFilters.brands && availableFilters.brands.length > 0 && (
+        {/* Manufacturer Filter */}
+        {availableFilters.manufacturers && availableFilters.manufacturers.length > 0 && (
           <div className="mb-3">
             <button
               className="btn btn-link p-0 text-decoration-none fw-semibold text-start w-100 d-flex justify-content-between align-items-center"
               type="button"
-              onClick={() => toggleSection('brand')}
+              onClick={() => toggleSection('manufacturer')}
             >
-              Brand
-              <i className={`bi bi-chevron-${openSections.brand ? 'up' : 'down'}`}></i>
+              Manufacturer
+              <i className={`bi bi-chevron-${openSections.manufacturer ? 'up' : 'down'}`}></i>
             </button>
-            {openSections.brand && (
+            {openSections.manufacturer && (
               <div className="mt-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                {availableFilters.brands.map(brand => (
-                  <div key={brand} className="form-check">
+                {availableFilters.manufacturers.map(manufacturer => (
+                  <div key={manufacturer} className="form-check">
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      id={`brand-${brand}`}
-                      checked={safeFilters.brands?.includes(brand) || false}
-                      onChange={(e) => handleCheckboxChange('brands', brand, e.target.checked)}
+                      id={`manufacturer-${manufacturer}`}
+                      checked={(safeFilters.manufacturer ? safeFilters.manufacturer.split(',') : []).includes(manufacturer)}
+                      onChange={(e) => handleCheckboxChange('manufacturer', manufacturer, e.target.checked)}
                     />
-                    <label className="form-check-label" htmlFor={`brand-${brand}`}>
-                      {brand}
+                    <label className="form-check-label" htmlFor={`manufacturer-${manufacturer}`}>
+                      {manufacturer}
                     </label>
                   </div>
                 ))}
@@ -185,7 +190,7 @@ const ProductFilters = ({
                       className="form-check-input"
                       type="checkbox"
                       id={`condition-${condition}`}
-                      checked={safeFilters.conditions?.includes(condition) || false}
+                      checked={(safeFilters.conditions ? safeFilters.conditions.split(',') : []).includes(condition)}
                       onChange={(e) => handleCheckboxChange('conditions', condition, e.target.checked)}
                     />
                     <label className="form-check-label" htmlFor={`condition-${condition}`}>

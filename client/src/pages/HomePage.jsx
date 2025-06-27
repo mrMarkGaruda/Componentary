@@ -143,8 +143,22 @@ const HomePage = () => {
     }
   }, [filters, searchTerm, sortBy, sortOrder, navigate, location.pathname]);
 
-  const handleFilterChange = (newFilters) => {
-    setFilters(newFilters);
+  const handleFilterChange = (filterType, value) => {
+    setFilters(prevFilters => {
+      const newFilters = { ...prevFilters };
+      
+      if (value === '' || value === null || value === undefined || (Array.isArray(value) && value.length === 0)) {
+        // Remove the filter if the value is empty
+        delete newFilters[filterType];
+      } else {
+        newFilters[filterType] = value;
+      }
+      
+      // Apply filters immediately
+      loadProducts(1, newFilters, searchTerm, sortBy, sortOrder);
+      
+      return newFilters;
+    });
   };
 
   const handlePageChange = (pageNumber) => {
