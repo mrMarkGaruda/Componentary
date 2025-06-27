@@ -1,4 +1,5 @@
 const express = require('express');
+const Product = require('../models/Product');
 const productController = require('../controllers/productController');
 const auth = require('../middleware/auth');
 const roles = require('../middleware/roles');
@@ -49,13 +50,15 @@ router.post('/:id/reviews', auth, async (req, res) => {
     const productId = req.params.id;
     const userId = req.user.id;
     
+    console.log('Review submission:', { rating, comment, productId, userId });
+    
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
     
     // Check if user already reviewed this product
-    const existingReview = product.ratings.find(
+    const existingReview = product.reviews.find(
       r => r.user.toString() === userId
     );
     
@@ -70,15 +73,20 @@ router.post('/:id/reviews', auth, async (req, res) => {
       createdAt: new Date()
     };
     
-    product.ratings.push(review);
+    product.reviews.push(review);
+    
+    // Recalculate rating stats
+    product.calculateRatingStats();
+    
     await product.save();
     
     // Populate the user info for the response
-    await product.populate('ratings.user', 'name email');
-    const savedReview = product.ratings[product.ratings.length - 1];
+    await product.populate('reviews.user', 'name email');
+    const savedReview = product.reviews[product.reviews.length - 1];
     
     res.status(201).json(savedReview);
   } catch (error) {
+    console.error('Review submission error:', error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -87,17 +95,17 @@ router.post('/:id/reviews', auth, async (req, res) => {
 router.get('/:id/reviews', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate('ratings.user', 'name')
-      .select('ratings averageRating totalRatings');
+      .populate('reviews.user', 'name')
+      .select('reviews averageRating reviewCount');
     
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
     
     res.json({
-      reviews: product.ratings,
+      reviews: product.reviews,
       averageRating: product.averageRating,
-      totalRatings: product.totalRatings
+      reviewCount: product.reviewCount
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
