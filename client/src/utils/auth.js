@@ -28,7 +28,33 @@ export const registerUser = async (userData) => {
 // Check if user is logged in
 export const isAuthenticated = () => {
   const token = localStorage.getItem('token');
-  return !!token;
+  const user = localStorage.getItem('currentUser');
+  return !!(token && user);
+};
+
+// Validate token (basic check)
+export const isTokenValid = () => {
+  const token = getToken();
+  if (!token) return false;
+  
+  try {
+    // Basic JWT structure check
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    
+    // Check if token is expired (if it has exp claim)
+    const payload = JSON.parse(atob(parts[1]));
+    if (payload.exp && Date.now() >= payload.exp * 1000) {
+      logoutUser(); // Auto logout if expired
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.warn('Invalid token format');
+    logoutUser();
+    return false;
+  }
 };
 
 // Get token

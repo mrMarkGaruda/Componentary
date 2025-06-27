@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { fetchProductById, deleteProduct } from '../utils/api';
-import { isAuthenticated, getToken } from '../utils/auth';
+import { fetchProductById, deleteProduct, fetchBoughtTogether } from '../utils/api';
+import { isAuthenticated, getToken, getCurrentUser } from '../utils/auth';
 import { useCart } from '../contexts/CartContext';
+import ProductReviews from '../components/ProductReviews';
+import Chat from '../components/Chat';
+import noImage from '../assets/no-image.png';
 
 const ProductDetailPage = () => {
   const { id } = useParams();
@@ -12,7 +15,10 @@ const ProductDetailPage = () => {
   const [error, setError] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [boughtTogether, setBoughtTogether] = useState([]);
+  const [showChat, setShowChat] = useState(false);
   const authenticated = isAuthenticated();
+  const user = getCurrentUser();
   const { addToCart } = useCart();
 
   useEffect(() => {
@@ -29,6 +35,14 @@ const ProductDetailPage = () => {
     };
 
     getProduct();
+
+    // Fetch frequently bought together
+    const getBoughtTogether = async () => {
+      const recs = await fetchBoughtTogether(id);
+      setBoughtTogether(recs);
+    };
+
+    getBoughtTogether();
   }, [id]);
 
   const handleDelete = async () => {
@@ -98,10 +112,26 @@ const ProductDetailPage = () => {
               className="img-fluid rounded-start"
               style={{ maxHeight: '400px', width: '100%', objectFit: 'cover' }}
               onError={(e) => {
-                e.target.onerror = null; 
-                e.target.src = "https://via.placeholder.com/600x400?text=No+Image+Available"
+                e.target.onerror = null;
+                e.target.src = noImage;
               }}
             />
+            {/* Frequently Bought Together Section */}
+            {boughtTogether.length > 0 && (
+              <div className="mt-4">
+                <h5>Frequently Bought Together</h5>
+                <ul className="list-group">
+                  {boughtTogether.map(item => (
+                    <li key={item.productId} className="list-group-item d-flex align-items-center">
+                      <Link to={`/product/${item.productId}`} className="me-2">
+                        View Product #{item.productId}
+                      </Link>
+                      <span className="badge bg-info ms-auto">Bought {item.frequency} times</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
           <div className="col-md-6">
             <div className="card-body p-4">
@@ -144,6 +174,17 @@ const ProductDetailPage = () => {
                   <i className="bi bi-cart-plus me-2"></i>
                   Add to Cart
                 </button>
+                
+                {/* Chat with Seller Button */}
+                {authenticated && user?.id !== product.seller?._id && (
+                  <button 
+                    className="btn btn-outline-info" 
+                    onClick={() => setShowChat(true)}
+                  >
+                    <i className="bi bi-chat-dots me-2"></i>
+                    Chat with Seller
+                  </button>
+                )}
               </div>
               
               <div className="d-flex gap-2 mt-4">
@@ -151,7 +192,7 @@ const ProductDetailPage = () => {
                   Back to Products
                 </Link>
                 
-                {authenticated && (
+                {authenticated && (user?.role === 'admin' || user?.role === 'seller') ? (
                   <>
                     <Link to={`/product/edit/${id}`} className="btn btn-outline-primary">
                       Edit
@@ -171,12 +212,42 @@ const ProductDetailPage = () => {
                       )}
                     </button>
                   </>
-                )}
+                ) : authenticated ? (
+                  <>
+                    <button className="btn btn-outline-primary" disabled title="Only sellers and admins can edit products">
+                      Edit
+                    </button>
+                    <button className="btn btn-outline-danger" disabled title="Only sellers and admins can delete products">
+                      Delete
+                    </button>
+                  </>
+                ) : null}
               </div>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Product Reviews Section */}
+      <div className="container py-4">
+        <ProductReviews 
+          productId={id} 
+          reviews={product.ratings || []} 
+          onReviewAdded={() => {
+            // Refresh product data to show new review
+            fetchProductById(id).then(setProduct);
+          }} 
+        />
+      </div>
+      
+      {/* Chat Modal */}
+      {showChat && product.seller && (
+        <Chat 
+          sellerId={product.seller._id} 
+          sellerName={product.seller.name} 
+          onClose={() => setShowChat(false)} 
+        />
+      )}
     </div>
   );
 };

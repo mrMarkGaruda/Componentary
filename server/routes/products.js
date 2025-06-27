@@ -1,94 +1,106 @@
 const express = require('express');
-const Product = require('../models/Product'); // This refers to the Product Mongoose Model
+const productController = require('../controllers/productController');
 const auth = require('../middleware/auth');
+const roles = require('../middleware/roles');
 const router = express.Router();
 
-// Get all products with Redis caching
-router.get('/', async (req, res) => {
-  try {
-    const cacheKey = 'products:all';
-      // Try to get from Redis cache first
-    const cachedProducts = await req.redisClient.get(cacheKey);
-    if (cachedProducts) {
-      return res.json(JSON.parse(cachedProducts));
-    }
-    // If not in cache, get from MongoDB
-    // Note: The original comment "Store name and email of seller in the product directly"
-    // suggests denormalization. If you want to denormalize, you'd modify the Product Mongoose
-    // schema to include seller name/email and populate during product creation/update.
-    // For now, keeping original populate behavior.
-    const products = await Product.find().populate('seller', 'name email'); 
-    
-    // Cache for 5 minutes
-    await req.redisClient.setex(cacheKey, 300, JSON.stringify(products));
-    
-    res.json(products);  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+// GET all products (with filtering, sorting, pagination)
+// No Redis caching here for now, as dynamic queries are complex to cache effectively at this level.
+// Caching can be re-introduced with more sophisticated strategies if needed.
+router.get('/', productController.getProducts);
 
-// Get single product with Redis caching
+// GET distinct filter values (categories, manufacturers, etc.)
+router.get('/filters', productController.getProductFilters);
+
+// GET single product (with Redis caching)
 router.get('/:id', async (req, res) => {
   try {
     const cacheKey = `product:${req.params.id}`;
     
-    // Try cache first
-    const cachedProduct = await req.redisClient.get(cacheKey);
-    if (cachedProduct) {
-      return res.json(JSON.parse(cachedProduct));
+    if (req.redisClient) {
+      const cachedProduct = await req.redisClient.get(cacheKey);
+      if (cachedProduct) {
+        return res.json(JSON.parse(cachedProduct));
+      }
     }
     
-    const product = await Product.findById(req.params.id).populate('seller', 'name email');
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-    
-    // Cache for 10 minutes
-    await req.redisClient.setex(cacheKey, 600, JSON.stringify(product));
-    
-    res.json(product);
+    // Delegate to controller if not in cache or Redis is not available
+    return productController.getProduct(req, res);
+
   } catch (error) {
+    console.error(`Error in GET /products/:id route: ${error.message}`);
     res.status(500).json({ message: error.message });
   }
 });
 
-// Create product
-router.post('/', auth, async (req, res) => {
+// POST create new product
+router.post('/', auth, roles(['admin', 'seller']), productController.createProduct);
+
+// PUT update existing product
+router.put('/:id', auth, roles(['admin', 'seller']), productController.updateProduct);
+
+// DELETE product
+router.delete('/:id', auth, roles(['admin', 'seller']), productController.deleteProduct);
+
+// Add review to product
+router.post('/:id/reviews', auth, async (req, res) => {
   try {
-    const product = new Product({
-      ...req.body,
-      seller: req.user.id
-    });
+    const { rating, comment } = req.body;
+    const productId = req.params.id;
+    const userId = req.user.id;
     
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    // Check if user already reviewed this product
+    const existingReview = product.ratings.find(
+      r => r.user.toString() === userId
+    );
+    
+    if (existingReview) {
+      return res.status(400).json({ message: 'You have already reviewed this product' });
+    }
+    
+    const review = {
+      user: userId,
+      rating: parseInt(rating),
+      comment: comment || '',
+      createdAt: new Date()
+    };
+    
+    product.ratings.push(review);
     await product.save();
-      // Clear products cache
-    await req.redisClient.del('products:all');
-      res.status(201).json(product);
+    
+    // Populate the user info for the response
+    await product.populate('ratings.user', 'name email');
+    const savedReview = product.ratings[product.ratings.length - 1];
+    
+    res.status(201).json(savedReview);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
 
-// Update product
-router.put('/:id', auth, async (req, res) => {
+// Get reviews for a product
+router.get('/:id/reviews', async (req, res) => {
   try {
-    const product = await Product.findOneAndUpdate(
-      { _id: req.params.id, seller: req.user.id },
-      req.body,
-      { new: true }
-    );
+    const product = await Product.findById(req.params.id)
+      .populate('ratings.user', 'name')
+      .select('ratings averageRating totalRatings');
     
     if (!product) {
-      return res.status(404).json({ message: 'Product not found or unauthorized' });
+      return res.status(404).json({ message: 'Product not found' });
     }
     
-    // Clear cache
-    await req.redisClient.del('products:all');
-    await req.redisClient.del(`product:${req.params.id}`);
-    
-    res.json(product);
+    res.json({
+      reviews: product.ratings,
+      averageRating: product.averageRating,
+      totalRatings: product.totalRatings
+    });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 

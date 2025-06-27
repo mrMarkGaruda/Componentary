@@ -12,6 +12,29 @@ export const fetchProducts = async () => {
   }
 };
 
+// Get all products (with potential filters, pagination, sorting)
+export const fetchProductsWithFilters = async (params) => {
+  try {
+    const res = await axios.get(`${API_BASE_URL}/api/products`, { params });
+    // The backend now returns an object like { products: [], totalPages: X, currentPage: Y, totalProducts: Z }
+    return res.data;
+  } catch (error) {
+    console.error('API Error fetching products with filters:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to fetch products');
+  }
+};
+
+// Get available filter options (categories, manufacturers, etc.)
+export const getProductFilterOptions = async () => {
+  try {
+    const res = await axios.get(`${API_BASE_URL}/api/products/filters`);
+    return res.data;
+  } catch (error) {
+    console.error('API Error fetching product filters:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to fetch product filter options');
+  }
+};
+
 // Get single product
 export const fetchProductById = async (id) => {
   try {
@@ -55,5 +78,27 @@ export const deleteProduct = async (id, token) => {
     return true;
   } catch (error) {
     throw new Error('Failed to delete product');
+  }
+};
+
+// Place order
+export const placeOrder = async (orderData, token) => {
+  try {
+    const res = await axios.post(`${API_BASE_URL}/api/orders`, orderData, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to place order');
+  }
+};
+
+// Get frequently bought together for a product
+export const fetchBoughtTogether = async (productId) => {
+  try {
+    const res = await axios.get(`${API_BASE_URL}/api/recommendations/bought-together/${productId}`);
+    return res.data;
+  } catch (error) {
+    return [];
   }
 };

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { isAuthenticated } from '../utils/auth';
+import { placeOrder } from '../utils/api';
+import { getToken, getCurrentUser } from '../utils/auth';
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -16,10 +18,12 @@ const CheckoutPage = () => {
     cardName: '',
     cardNumber: '',
     expDate: '',
-    cvv: ''
+    cvv: '',
+    paymentMethod: 'credit_card', // default to credit card
   });
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
+  const user = getCurrentUser();
 
   // Redirect if not authenticated
   if (!isAuthenticated()) {
@@ -52,33 +56,54 @@ const CheckoutPage = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (step === 1) {
       setStep(2);
       window.scrollTo(0, 0);
       return;
     }
-    
-    // Process order
     setLoading(true);
-    
-    // Simulate processing time
-    setTimeout(() => {
-      // Order successful
-      setLoading(false);
-      // Generate order number
-      const orderNumber = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-      
-      // Clear cart
-      clearCart();
-      
-      // Navigate to success page (we'll modify the route in App.jsx)
-      navigate('/order-success', { 
-        state: { orderNumber } 
+    try {
+      // Prepare order data
+      const paymentMethodMap = {
+        credit_card: 'credit_card',
+        paypal: 'paypal',
+        bank_transfer: 'bank_transfer',
+      };
+      const orderData = {
+        items: cart.map(item => ({
+          product: item._id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        totalAmount: cartTotal,
+        shippingAddress: {
+          street: formData.address,
+          city: formData.city,
+          country: formData.country,
+          zipCode: formData.postalCode
+        },
+        paymentMethod: paymentMethodMap[formData.paymentMethod] || 'credit_card',
+        paymentStatus: 'completed',
+      };
+      await placeOrder(orderData, getToken());
+      // Record purchase for recommendations
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/recommendations/record-purchase`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id, productIds: cart.map(item => item._id) })
       });
-    }, 1500);
+      setLoading(false);
+      clearCart();
+      const orderNumber = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+      navigate('/order-success', { state: { orderNumber } });
+    } catch (err) {
+      setLoading(false);
+      alert(err.message || 'Failed to place order.');
+    }
   };
 
   return (
@@ -210,60 +235,112 @@ const CheckoutPage = () => {
                   /* Payment Form */
                   <>
                     <div className="row g-3">
-                      <div className="col-12">
-                        <label htmlFor="cardName" className="form-label">Name on Card</label>
-                        <input 
-                          type="text" 
-                          className="form-control" 
-                          id="cardName" 
-                          name="cardName"
-                          value={formData.cardName}
-                          onChange={handleChange}
-                          required
-                        />
+                      {/* Payment Method Selection */}
+                      <div className="col-12 mb-2">
+                        <label className="form-label">Payment Method</label>
+                        <div className="form-check">
+                          <input
+                            className="form-check-input"
+                            type="radio"
+                            name="paymentMethod"
+                            id="creditCard"
+                            value="credit_card"
+                            checked={formData.paymentMethod === 'credit_card'}
+                            onChange={handleChange}
+                          />
+                          <label className="form-check-label" htmlFor="creditCard">
+                            Credit Card
+                          </label>
+                        </div>
+                        <div className="form-check">
+                          <input
+                            className="form-check-input"
+                            type="radio"
+                            name="paymentMethod"
+                            id="paypal"
+                            value="paypal"
+                            checked={formData.paymentMethod === 'paypal'}
+                            onChange={handleChange}
+                          />
+                          <label className="form-check-label" htmlFor="paypal">
+                            PayPal
+                          </label>
+                        </div>
+                        <div className="form-check">
+                          <input
+                            className="form-check-input"
+                            type="radio"
+                            name="paymentMethod"
+                            id="bankTransfer"
+                            value="bank_transfer"
+                            checked={formData.paymentMethod === 'bank_transfer'}
+                            onChange={handleChange}
+                          />
+                          <label className="form-check-label" htmlFor="bankTransfer">
+                            Bank Transfer
+                          </label>
+                        </div>
                       </div>
                       
-                      <div className="col-12">
-                        <label htmlFor="cardNumber" className="form-label">Card Number</label>
-                        <input 
-                          type="text" 
-                          className="form-control" 
-                          id="cardNumber" 
-                          name="cardNumber"
-                          value={formData.cardNumber}
-                          onChange={handleChange}
-                          required
-                          placeholder="XXXX XXXX XXXX XXXX"
-                        />
-                      </div>
-                      
-                      <div className="col-md-6">
-                        <label htmlFor="expDate" className="form-label">Expiration Date</label>
-                        <input 
-                          type="text" 
-                          className="form-control" 
-                          id="expDate" 
-                          name="expDate"
-                          value={formData.expDate}
-                          onChange={handleChange}
-                          required
-                          placeholder="MM/YY"
-                        />
-                      </div>
-                      
-                      <div className="col-md-6">
-                        <label htmlFor="cvv" className="form-label">CVV</label>
-                        <input 
-                          type="text" 
-                          className="form-control" 
-                          id="cvv" 
-                          name="cvv"
-                          value={formData.cvv}
-                          onChange={handleChange}
-                          required
-                          placeholder="123"
-                        />
-                      </div>
+                      {/* Only show card fields if credit card is selected */}
+                      {formData.paymentMethod === 'credit_card' && (
+                        <>
+                          <div className="col-12">
+                            <label htmlFor="cardName" className="form-label">Name on Card</label>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              id="cardName" 
+                              name="cardName"
+                              value={formData.cardName}
+                              onChange={handleChange}
+                              required={formData.paymentMethod === 'credit_card'}
+                            />
+                          </div>
+                          
+                          <div className="col-12">
+                            <label htmlFor="cardNumber" className="form-label">Card Number</label>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              id="cardNumber" 
+                              name="cardNumber"
+                              value={formData.cardNumber}
+                              onChange={handleChange}
+                              required={formData.paymentMethod === 'credit_card'}
+                              placeholder="XXXX XXXX XXXX XXXX"
+                            />
+                          </div>
+                          
+                          <div className="col-md-6">
+                            <label htmlFor="expDate" className="form-label">Expiration Date</label>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              id="expDate" 
+                              name="expDate"
+                              value={formData.expDate}
+                              onChange={handleChange}
+                              required={formData.paymentMethod === 'credit_card'}
+                              placeholder="MM/YY"
+                            />
+                          </div>
+                          
+                          <div className="col-md-6">
+                            <label htmlFor="cvv" className="form-label">CVV</label>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              id="cvv" 
+                              name="cvv"
+                              value={formData.cvv}
+                              onChange={handleChange}
+                              required={formData.paymentMethod === 'credit_card'}
+                              placeholder="123"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
                     
                     <hr className="my-4" />
@@ -305,7 +382,7 @@ const CheckoutPage = () => {
               <h4 className="mb-3">Order Summary</h4>
               
               {cart.map(item => (
-                <div key={item.id} className="d-flex justify-content-between mb-2">
+                <div key={item._id} className="d-flex justify-content-between mb-2">
                   <div>
                     <span className="fw-bold">{item.quantity}x</span> {item.name}
                   </div>

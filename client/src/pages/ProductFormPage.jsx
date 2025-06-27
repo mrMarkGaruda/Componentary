@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { createProduct, updateProduct, fetchProductById } from '../utils/api';
-import { getToken } from '../utils/auth';
+import { getToken, getCurrentUser } from '../utils/auth';
 
 const ProductFormPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditMode = !!id;
   const token = getToken();
+  const user = getCurrentUser();
+  const userRole = user?.role;
   
   const [formData, setFormData] = useState({
     name: '',
@@ -20,6 +22,13 @@ const ProductFormPage = () => {
   const [error, setError] = useState('');
   
   useEffect(() => {
+    if (!userRole || (userRole !== 'admin' && userRole !== 'seller')) {
+      setTimeout(() => {
+        window.alert('You do not have permission to access this page.');
+        navigate('/');
+      }, 100);
+      return;
+    }
     if (isEditMode) {
       const fetchProduct = async () => {
         try {
@@ -40,7 +49,7 @@ const ProductFormPage = () => {
       
       fetchProduct();
     }
-  }, [id, isEditMode]);
+  }, [id, isEditMode, userRole, navigate]);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -72,6 +81,10 @@ const ProductFormPage = () => {
       setLoading(false);
     }
   };
+  
+  if (!userRole || (userRole !== 'admin' && userRole !== 'seller')) {
+    return null;
+  }
   
   return (
     <div className="container py-5">

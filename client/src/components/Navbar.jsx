@@ -2,11 +2,14 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { isAuthenticated, logoutUser } from '../utils/auth';
 import { getCurrentUser } from '../utils/auth';
+import { useCart } from '../contexts/CartContext';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const authenticated = isAuthenticated();
   const user = getCurrentUser();
+  const userRole = user?.role;
+  const { cartItemsCount, setCartOpen } = useCart();
 
   const handleLogout = () => {
     logoutUser();
@@ -14,67 +17,136 @@ const Navbar = () => {
   };
 
   return (
-    <header className="py-3 mb-4 border-bottom">
-      <div className="container d-flex flex-wrap align-items-center justify-content-center justify-content-md-between">
-        <Link to="/" className="d-flex align-items-center mb-2 mb-md-0 text-dark text-decoration-none">
-          <i className="bi bi-shop-window fs-4 me-2"></i>
-          <h3 className="m-0">Componentary</h3>
+    <nav className="navbar navbar-expand-lg navbar-dark sticky-top">
+      <div className="container">
+        <Link to="/" className="navbar-brand d-flex align-items-center">
+          <i className="bi bi-cpu me-2 fs-3"></i>
+          <span style={{ fontWeight: '800', fontSize: '1.5rem' }}>Componentary</span>
         </Link>
 
-        <ul className="nav col-12 col-md-auto mb-2 justify-content-center mb-md-0">
-          <li>
-            <Link to="/" className="nav-link px-2 link-dark">
-              <i className="bi bi-house-door me-1"></i> Home
-            </Link>
-          </li>
-          {authenticated && (
-            <li>
-              <Link to="/product/new" className="nav-link px-2 link-dark">
-                <i className="bi bi-plus-circle me-1"></i> Add Product
+        <button 
+          className="navbar-toggler border-0" 
+          type="button" 
+          data-bs-toggle="collapse" 
+          data-bs-target="#navbarNav"
+        >
+          <span className="navbar-toggler-icon"></span>
+        </button>
+
+        <div className="collapse navbar-collapse" id="navbarNav">
+          <ul className="navbar-nav me-auto">
+            <li className="nav-item">
+              <Link to="/" className="nav-link d-flex align-items-center">
+                <i className="bi bi-house-door me-1"></i> Home
               </Link>
             </li>
-          )}
-        </ul>
+            <li className="nav-item">
+              <Link to="/products" className="nav-link d-flex align-items-center">
+                <i className="bi bi-grid me-1"></i> Products
+              </Link>
+            </li>
+            {authenticated && (userRole === 'admin' || userRole === 'seller') && (
+              <li className="nav-item">
+                <Link to="/product/new" className="nav-link d-flex align-items-center">
+                  <i className="bi bi-plus-circle me-1"></i> Add Product
+                </Link>
+              </li>
+            )}
+            {authenticated && userRole === 'admin' && (
+              <li className="nav-item">
+                <Link to="/admin" className="nav-link d-flex align-items-center">
+                  <i className="bi bi-shield-check me-1"></i> Admin
+                </Link>
+              </li>
+            )}
+            {authenticated && (userRole === 'seller' || userRole === 'admin') && (
+              <li className="nav-item">
+                <Link to="/seller" className="nav-link d-flex align-items-center">
+                  <i className="bi bi-shop me-1"></i> Seller
+                </Link>
+              </li>
+            )}
+          </ul>
 
-        <div className="col-md-3 text-end">
-          {authenticated ? (
-            <div className="dropdown">
-              <button 
-                className="btn btn-outline-dark dropdown-toggle" 
-                type="button" 
-                id="userDropdown" 
-                data-bs-toggle="dropdown" 
-                aria-expanded="false"
-              >
-                <i className="bi bi-person-circle me-1"></i> {user?.name || 'User'}
-              </button>
-              <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                <li>
-                  <div className="dropdown-item-text">
-                    <small className="text-muted">{user?.email}</small>
+          <ul className="navbar-nav">
+            {authenticated && (
+              <li className="nav-item">
+                <button 
+                  className="nav-link btn btn-link position-relative"
+                  onClick={() => setCartOpen(true)}
+                  style={{ border: 'none', background: 'none' }}
+                >
+                  <i className="bi bi-cart3 fs-5"></i>
+                  {cartItemsCount > 0 && (
+                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                      {cartItemsCount}
+                    </span>
+                  )}
+                </button>
+              </li>
+            )}
+            
+            {authenticated ? (
+              <li className="nav-item dropdown">
+                <button 
+                  className="nav-link dropdown-toggle btn btn-link d-flex align-items-center" 
+                  type="button" 
+                  id="userDropdown" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false"
+                  style={{ border: 'none', background: 'none' }}
+                >
+                  <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" 
+                       style={{ width: '32px', height: '32px', fontSize: '0.9rem', fontWeight: '600' }}>
+                    {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
+                  <span className="d-none d-lg-inline">{user?.name || 'User'}</span>
+                </button>
+                <ul className="dropdown-menu dropdown-menu-end shadow">
+                  <li className="dropdown-header">
+                    <div className="fw-semibold">{user?.name}</div>
+                    <small className="text-muted">{user?.email}</small>
+                    <div className="mt-1">
+                      <span className="badge bg-primary">{userRole?.charAt(0).toUpperCase() + userRole?.slice(1)}</span>
+                    </div>
+                  </li>
+                  <li><hr className="dropdown-divider" /></li>
+                  <li>
+                    <Link className="dropdown-item d-flex align-items-center" to="/profile">
+                      <i className="bi bi-person me-2"></i> Profile
+                    </Link>
+                  </li>
+                  <li>
+                    <Link className="dropdown-item d-flex align-items-center" to="/orders">
+                      <i className="bi bi-bag me-2"></i> Orders
+                    </Link>
+                  </li>
+                  <li><hr className="dropdown-divider" /></li>
+                  <li>
+                    <button className="dropdown-item d-flex align-items-center text-danger" onClick={handleLogout}>
+                      <i className="bi bi-box-arrow-right me-2"></i> Logout
+                    </button>
+                  </li>
+                </ul>
+              </li>
+            ) : (
+              <>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/login">
+                    <i className="bi bi-box-arrow-in-right me-1"></i> Login
+                  </Link>
                 </li>
-                <li><hr className="dropdown-divider" /></li>
-                <li>
-                  <button className="dropdown-item text-danger" onClick={handleLogout}>
-                    <i className="bi bi-box-arrow-right me-1"></i> Logout
-                  </button>
+                <li className="nav-item">
+                  <Link className="btn btn-primary ms-2" to="/signup">
+                    <i className="bi bi-person-plus me-1"></i> Sign Up
+                  </Link>
                 </li>
-              </ul>
-            </div>
-          ) : (
-            <>
-              <Link className="btn btn-outline-dark me-2" to="/login">
-                <i className="bi bi-box-arrow-in-right me-1"></i> Login
-              </Link>
-              <Link className="btn btn-success" to="/signup">
-                <i className="bi bi-person-plus me-1"></i> Sign-up
-              </Link>
-            </>
-          )}
+              </>
+            )}
+          </ul>
         </div>
       </div>
-    </header>
+    </nav>
   );
 };
 
