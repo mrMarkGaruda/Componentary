@@ -229,7 +229,7 @@ const ProductDetailPage = () => {
       <div className="container py-4">
         <ProductReviews 
           productId={id} 
-          reviews={product.ratings || []} 
+          reviews={product.reviews || []} 
           onReviewAdded={() => {
             // Refresh product data to show new review
             fetchProductById(id).then(setProduct);

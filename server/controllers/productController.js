@@ -2,8 +2,14 @@ const Product = require('../models/Product')
 
 exports.createProduct = async (req, res) => {
   try {
+    console.log('Product creation request body:', JSON.stringify(req.body, null, 2));
+    console.log('User ID from req.user:', req.user?.id);
+    
     const product = new Product({ ...req.body, seller: req.user.id })
+    console.log('Product before save:', JSON.stringify(product.toObject(), null, 2));
+    
     await product.save()
+    
     // Invalidate cache for all products and potentially specific filter caches if implemented
     if (req.redisClient) {
       await req.redisClient.del('products:all'); // Basic invalidation
@@ -11,7 +17,16 @@ exports.createProduct = async (req, res) => {
     }
     res.status(201).json(product)
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Product creation error:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      errors: error.errors
+    });
+    res.status(400).json({ 
+      message: error.message,
+      errors: error.errors 
+    });
   }
 }
 

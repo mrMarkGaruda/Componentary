@@ -16,6 +16,9 @@ const ProductFormPage = () => {
     price: '',
     description: '',
     image: '',
+    category: '',
+    manufacturer: '',
+    stock: '0',
   });
   
   const [loading, setLoading] = useState(false);
@@ -39,6 +42,9 @@ const ProductFormPage = () => {
             price: product.price.toString(),
             description: product.description,
             image: product.image || '',
+            category: product.category || '',
+            manufacturer: product.manufacturer || '',
+            stock: product.stock ? product.stock.toString() : '0',
           });
           setLoading(false);
         } catch (err) {
@@ -62,10 +68,12 @@ const ProductFormPage = () => {
     setLoading(true);
     
     try {
-      // Convert price to number
+      // Convert price and stock to numbers and provide default image if empty
       const productData = {
         ...formData,
         price: parseFloat(formData.price),
+        stock: parseInt(formData.stock, 10),
+        image: formData.image || '/assets/no-image.png', // Provide default image if empty
       };
       
       if (isEditMode) {
@@ -132,6 +140,72 @@ const ProductFormPage = () => {
                       required
                     />
                   </div>
+                </div>
+                
+                <div className="mb-3">
+                  <label htmlFor="category" className="form-label">
+                    Category
+                  </label>
+                  <select
+                    className="form-select"
+                    id="category"
+                    name="category"
+                    value={formData.category}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select a category</option>
+                    <option value="CPU">CPU</option>
+                    <option value="GPU">GPU</option>
+                    <option value="Motherboard">Motherboard</option>
+                    <option value="RAM">RAM</option>
+                    <option value="Storage">Storage</option>
+                    <option value="PSU">PSU</option>
+                    <option value="Case">Case</option>
+                    <option value="Cooling">Cooling</option>
+                    <option value="Monitor">Monitor</option>
+                    <option value="Keyboard">Keyboard</option>
+                    <option value="Mouse">Mouse</option>
+                    <option value="Networking">Networking</option>
+                    <option value="Audio">Audio</option>
+                    <option value="Software">Software</option>
+                    <option value="Accessories">Accessories</option>
+                    <option value="Prebuilt">Prebuilt</option>
+                    <option value="Laptop">Laptop</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                
+                <div className="mb-3">
+                  <label htmlFor="manufacturer" className="form-label">
+                    Manufacturer
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="manufacturer"
+                    name="manufacturer"
+                    value={formData.manufacturer}
+                    onChange={handleChange}
+                    placeholder="e.g., Intel, AMD, NVIDIA, ASUS"
+                    required
+                  />
+                </div>
+                
+                <div className="mb-3">
+                  <label htmlFor="stock" className="form-label">
+                    Stock Quantity
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="form-control"
+                    id="stock"
+                    name="stock"
+                    value={formData.stock}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
                 
                 <div className="mb-3">

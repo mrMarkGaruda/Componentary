@@ -53,7 +53,9 @@ export const createProduct = async (productData, token) => {
     });
     return res.data;
   } catch (error) {
-    throw new Error('Failed to create product');
+    console.error('Create product error:', error.response?.data);
+    const errorMessage = error.response?.data?.message || 'Failed to create product';
+    throw new Error(errorMessage);
   }
 };
 

@@ -35,6 +35,7 @@ const ProductReviews = ({ productId, reviews = [], onReviewAdded }) => {
         alert('Review submitted successfully!');
       } else {
         const error = await response.json();
+        console.error('Review submission error:', error);
         throw new Error(error.message || 'Failed to submit review');
       }
     } catch (error) {
@@ -176,13 +177,6 @@ const ProductReviews = ({ productId, reviews = [], onReviewAdded }) => {
           ))}
         </div>
       )}
-
-      <style jsx>{`
-        .interactive-star:hover {
-          transform: scale(1.1);
-          transition: transform 0.2s;
-        }
-      `}</style>
     </div>
   );
 };
