@@ -21,6 +21,9 @@ const ProductDetailPage = () => {
   const { addToCart } = useCart();
 
   useEffect(() => {
+    // Scroll to top when component mounts or ID changes
+    window.scrollTo(0, 0);
+    
     const getProduct = async () => {
       try {
         setLoading(true);

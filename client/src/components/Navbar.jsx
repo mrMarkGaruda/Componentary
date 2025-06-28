@@ -79,11 +79,24 @@ const Navbar = () => {
                 <button 
                   className="nav-link btn btn-link position-relative"
                   onClick={() => setCartOpen(true)}
-                  style={{ border: 'none', background: 'none' }}
+                  style={{ border: 'none', background: 'none', padding: '0.5rem' }}
                 >
                   <i className="bi bi-cart3 fs-5"></i>
                   {cartItemsCount > 0 && (
-                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                    <span 
+                      className="position-absolute badge rounded-pill bg-primary"
+                      style={{
+                        top: '0',
+                        right: '-5px',
+                        fontSize: '0.65rem',
+                        minWidth: '18px',
+                        height: '18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        lineHeight: '1'
+                      }}
+                    >
                       {cartItemsCount}
                     </span>
                   )}

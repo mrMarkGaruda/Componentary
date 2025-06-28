@@ -116,8 +116,7 @@ const ChatWindow = ({ sellerId, sellerName, productId, onClose }) => {
     const messageContent = newMessage.trim();
     const messageData = {
       recipientId: sellerId,
-      content: messageContent,
-      productId: productId || new URLSearchParams(window.location.search).get('productId') // Use prop or URL
+      content: messageContent
     };
 
     try {
@@ -139,14 +138,13 @@ const ChatWindow = ({ sellerId, sellerName, productId, onClose }) => {
 
       const data = await response.json();
       
-      // Add the new messages (user message and potentially AI response) to the chat
-      if (data.messages && Array.isArray(data.messages)) {
+      // Add the new message to the chat
+      if (data.message) {
         setMessages(prev => {
-          // Prevent duplicates by checking if messages already exist
-          const newMessages = data.messages.filter(newMsg => 
-            !prev.some(existingMsg => existingMsg._id === newMsg._id)
-          );
-          return [...prev, ...newMessages];
+          // Prevent duplicates by checking if message already exists
+          const messageExists = prev.some(existingMsg => existingMsg._id === data.message._id);
+          if (messageExists) return prev;
+          return [...prev, data.message];
         });
       }
       

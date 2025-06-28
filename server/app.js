@@ -213,6 +213,7 @@ app.use('/api/admin', require('./routes/admin'))
 app.use('/api/seller', require('./routes/seller'))
 app.use('/api/user', require('./routes/user'))
 app.use('/api/chat', require('./routes/chat'))
+app.use('/api/website-helper', require('./routes/websiteHelper'))
 
 // 404 handler - Use '*' string instead of regex to avoid path-to-regexp error
 app.use('*', (req, res) => {

@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import CartDrawer from './components/CartDrawer';
+import WebsiteHelper from './components/WebsiteHelper';
 
 // Contexts
 import { CartProvider } from './contexts/CartContext';
@@ -104,6 +105,7 @@ const App = () => {
           </main>
           
           <Footer />
+          <WebsiteHelper />
         </div>
       </CartProvider>
     </Router>

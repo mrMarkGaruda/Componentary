@@ -124,10 +124,10 @@ router.get('/:sellerId', auth, rateLimiter, async (req, res) => {
 // Send a message
 router.post('/send', auth, rateLimiter, async (req, res) => {
   try {
-    const { recipientId, content, productId } = req.body;
+    const { recipientId, content } = req.body;
     const senderId = req.user.id;
     
-    // Get recipient info to check if it's a seller
+    // Get recipient info
     const recipient = await User.findById(recipientId);
     if (!recipient) {
       return res.status(404).json({ message: 'Recipient not found' });
@@ -157,42 +157,14 @@ router.post('/send', auth, rateLimiter, async (req, res) => {
     
     await chat.save();
     
-    // Generate AI response if recipient is a seller
-    if (recipient.role === 'seller') {
-      try {
-        // Get product context if productId is provided
-        const productContext = await getProductContext(productId);
-        
-        // Generate AI response
-        const aiResponse = await callAIService(content, productContext, recipient.name);
-        
-        // Add AI response to chat
-        const aiMessage = {
-          sender: recipientId,
-          content: aiResponse,
-          timestamp: new Date(),
-          read: false,
-          isAI: true
-        };
-        
-        chat.messages.push(aiMessage);
-        chat.lastMessage = new Date();
-        
-        await chat.save();
-      } catch (error) {
-        console.error('Error generating AI response:', error);
-        // Continue without AI response if there's an error
-      }
-    }
-    
     // Populate sender info for response
     await chat.populate('messages.sender', 'name email');
     
-    // Return the latest messages (user message and potentially AI response)
-    const latestMessages = chat.messages.slice(-2);
+    // Return the latest message
+    const latestMessage = chat.messages[chat.messages.length - 1];
     
     res.json({
-      messages: latestMessages,
+      message: latestMessage,
       chatId: chat._id
     });
   } catch (error) {

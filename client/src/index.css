@@ -3,3 +3,41 @@
   transform: scale(1.1);
   transition: transform 0.2s;
 }
+
+/* Website Helper Styles */
+.website-helper-chat {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-color) !important;
+}
+
+.website-helper-button {
+  box-shadow: 0 4px 20px rgba(215, 86, 64, 0.4);
+  transition: all 0.3s ease;
+}
+
+.website-helper-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(215, 86, 64, 0.5);
+}
+
+.max-width-75 {
+  max-width: 75%;
+}
+
+/* Dark theme input styling for website helper */
+.website-helper-chat input::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.website-helper-chat input:focus {
+  background-color: var(--darker-color) !important;
+  border-color: var(--primary-color) !important;
+  color: var(--text-light) !important;
+  box-shadow: 0 0 0 0.2rem rgba(215, 86, 64, 0.25) !important;
+}
+
+/* Cart notification badge fix */
+.navbar .position-relative .badge {
+  z-index: 10;
+  transform: scale(1);
+}
