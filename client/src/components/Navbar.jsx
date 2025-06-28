@@ -66,6 +66,11 @@ const Navbar = () => {
                 </Link>
               </li>
             )}
+            <li className="nav-item">
+              <Link to="/recommendations" className="nav-link d-flex align-items-center">
+                <i className="bi bi-stars me-1"></i> Recommendations
+              </Link>
+            </li>
           </ul>
 
           <ul className="navbar-nav">
