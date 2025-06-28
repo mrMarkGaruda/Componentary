@@ -93,6 +93,7 @@ const CheckoutPage = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
         },
         body: JSON.stringify({ userId: user.id, productIds: cart.map(item => item._id) })
       });

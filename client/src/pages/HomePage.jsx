@@ -3,6 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { fetchProductsWithFilters, getProductFilterOptions } from '../utils/api';
 import ProductList from '../components/ProductList';
 import ProductFilters from '../components/ProductFilters';
+import RecommendationSection from '../components/RecommendationSection';
 import { isAuthenticated, getCurrentUser, isTokenValid } from '../utils/auth';
 
 const HomePage = () => {
@@ -233,21 +234,7 @@ const HomePage = () => {
 
       <div className="container-fluid">
         {/* Personalized Recommendations Section */}
-        {authenticated && recommendedProducts.length > 0 && (
-          <div className="mb-5">
-            <div className="d-flex align-items-center justify-content-between mb-4">
-              <div>
-                <h2 className="h3 fw-bold text-light mb-1">Recommended for You</h2>
-                <p className="text-muted mb-0">Based on your browsing and purchase history</p>
-              </div>
-              <Link to="/products" className="btn btn-outline-primary">
-                View All <i className="bi bi-arrow-right ms-1"></i>
-              </Link>
-            </div>
-            <ProductList products={recommendedProducts} />
-          </div>
-        )}
-
+        <RecommendationSection />
         {/* Trending Products Section */}
         {trendingProducts.length > 0 && (
           <div className="mb-5">

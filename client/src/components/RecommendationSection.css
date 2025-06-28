@@ -1,0 +1,106 @@
+/* Modern styles for RecommendationSection */
+.rec-section {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+  padding: 2rem 1.5rem;
+  margin: 2rem 0;
+}
+.rec-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.2rem;
+}
+.rec-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #222;
+}
+.rec-view-all {
+  color: #1976d2;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.rec-view-all:hover {
+  color: #0d47a1;
+}
+.rec-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+.rec-card {
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+  border-radius: 12px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.2s, transform 0.2s;
+  overflow: hidden;
+}
+.rec-card:hover {
+  box-shadow: 0 4px 18px rgba(25, 118, 210, 0.12);
+  transform: translateY(-2px) scale(1.02);
+}
+.rec-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: contain;
+  background: #e3e6ea;
+}
+.rec-info {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.rec-info h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: #222;
+}
+.rec-brand, .rec-type {
+  font-size: 0.95rem;
+  color: #666;
+}
+.rec-price {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1976d2;
+  margin-top: 0.2rem;
+}
+.rec-loading, .rec-error {
+  color: #888;
+  text-align: center;
+  padding: 2rem 0;
+}
+.rec-desc {
+  color: #1976d2;
+  font-size: 1.08rem;
+  margin-top: 0.2rem;
+  margin-bottom: 0.7rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+.rec-empty-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2.5rem 0 1.5rem 0;
+}
+.rec-page-hero {
+  background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+  border-radius: 18px;
+  padding: 2.5rem 2rem;
+  margin-bottom: 2.5rem;
+  color: #fff;
+  box-shadow: 0 4px 32px rgba(25,118,210,0.10);
+}
+.rec-page {
+  min-height: 80vh;
+}

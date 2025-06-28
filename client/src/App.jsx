@@ -24,6 +24,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import SellerDashboard from './pages/SellerDashboard';
 import OrderHistoryPage from './pages/OrderHistoryPage';
 import UserProfilePage from './pages/UserProfilePage';
+import RecommendationsPage from './pages/RecommendationsPage';
 
 const App = () => {
   return (
@@ -97,6 +98,7 @@ const App = () => {
                   </ProtectedRoute>
                 } 
               />
+              <Route path="/recommendations" element={<RecommendationsPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>

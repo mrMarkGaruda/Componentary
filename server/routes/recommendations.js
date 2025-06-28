@@ -6,6 +6,7 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const neo4jDriver = require('../config/neo4j');
 const redisClient = require('../config/redis');
+const { getSimpleRecommendations } = require('../controllers/orderController');
 
 const service = new RecommendationService(neo4jDriver, redisClient);
 
@@ -305,6 +306,7 @@ router.get('/analytics', auth, async (req, res) => {
   }
 });
 
-module.exports = router;
+// Simple recommendations from orderController
+router.get('/simple/:userId', getSimpleRecommendations);
 
-module.exports = router
+module.exports = router;
