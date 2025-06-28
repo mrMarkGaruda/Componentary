@@ -23,6 +23,14 @@ class ChatResponse(BaseModel):
     response: str
     confidence: float = 0.9
 
+class WebsiteHelperRequest(BaseModel):
+    message: str
+    page_context: Dict[str, Any] = {}
+
+class WebsiteHelperResponse(BaseModel):
+    response: str
+    confidence: float = 0.9
+
 class SmolLM2ChatModel:
     def __init__(self):
         self.model = None
@@ -285,6 +293,224 @@ Customer: {message}
         
         return "Thank you for contacting Componentary! I'm here to help with any questions about our tech products. What can I assist you with?"
 
+    def create_website_helper_prompt(self, message: str, page_context: Dict) -> str:
+        """Create a specialized prompt for website assistance"""
+        
+        # Extract relevant context
+        current_page = page_context.get('currentPage', '')
+        page_title = page_context.get('pageTitle', '')
+        page_content = page_context.get('pageContent', '')[:300]  # Shorter content
+        product_info = page_context.get('productInfo', {})
+        
+        # Create a much more constrained prompt
+        conversation = f"""You are a professional customer service assistant for Componentary. 
+
+Rules:
+- Give helpful, short answers (1 sentence only)
+- Stay focused on the user's question
+- Be polite and professional
+- Don't make up information
+
+Current page: {current_page}
+
+Question: {message}
+Answer:"""
+        
+        return conversation
+
+    async def generate_website_helper_response(self, message: str, page_context: Dict) -> str:
+        """Generate website helper response using SmolLM2 model"""
+        try:
+            if not self.model or not self.tokenizer:
+                return self._website_helper_fallback(message, page_context)
+            
+            # Create specialized prompt for website help
+            prompt = self.create_website_helper_prompt(message, page_context)
+            
+            # Tokenize input
+            inputs = self.tokenizer(
+                prompt, 
+                return_tensors="pt", 
+                max_length=300,  # Shorter for website help
+                truncation=True,
+                padding=True
+            )
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            
+            # Generate response with website-appropriate parameters
+            with torch.no_grad():
+                outputs = self.model.generate(
+                    **inputs,
+                    max_new_tokens=25,  # Much shorter responses
+                    temperature=0.1,    # Very low temperature for consistency
+                    do_sample=True,
+                    pad_token_id=self.tokenizer.pad_token_id,
+                    eos_token_id=self.tokenizer.eos_token_id,
+                    top_p=0.5,          # Much lower for focused responses
+                    repetition_penalty=1.5,
+                    no_repeat_ngram_size=3,
+                    early_stopping=True
+                )
+            
+            # Decode and extract response
+            full_response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            
+            # Extract only the response part after "Answer:"
+            if "Answer:" in full_response:
+                response = full_response.split("Answer:", 1)[-1].strip()
+            else:
+                response = full_response[len(prompt):].strip()
+            
+            # Take only the first sentence
+            sentences = response.split('.')
+            if sentences:
+                response = sentences[0].strip() + ('.' if sentences[0].strip() and not sentences[0].strip().endswith('.') else '')
+            
+            # Clean and validate response
+            response = self._clean_website_helper_response(response)
+            
+            if not self._is_valid_website_helper_response(response, message):
+                return self._website_helper_fallback(message, page_context)
+                
+            return response if response else self._website_helper_fallback(message, page_context)
+            
+        except Exception as e:
+            logger.error(f"Error generating website helper response: {e}")
+            return self._website_helper_fallback(message, page_context)
+    
+    def _clean_website_helper_response(self, response: str) -> str:
+        """Clean and format website helper response"""
+        if not response:
+            return ""
+            
+        # Remove any unwanted tokens or artifacts
+        response = response.strip()
+        
+        # Remove common model artifacts
+        artifacts = ['<|endoftext|>', '<|end|>', '\n', 'User:', 'Assistant:', 'Question:', 'Answer:']
+        for artifact in artifacts:
+            response = response.replace(artifact, ' ')
+        
+        response = response.strip()
+        
+        # Ensure it ends with proper punctuation
+        if response and not response.endswith(('.', '!', '?')):
+            response += '.'
+            
+        # Limit to reasonable length
+        if len(response) > 200:
+            # Cut at sentence boundary
+            sentences = response.split('.')
+            if len(sentences) > 1:
+                response = sentences[0] + '.'
+            else:
+                response = response[:200] + '...'
+        
+        return response
+    
+    def _is_valid_website_helper_response(self, response: str, original_message: str) -> bool:
+        """Validate website helper response quality"""
+        if not response or len(response.strip()) < 5:
+            return False
+            
+        # Check for repetitive or nonsensical content
+        words = response.lower().split()
+        if len(set(words)) / len(words) < 0.5 and len(words) > 10:  # Too repetitive
+            return False
+            
+        # Check for inappropriate content
+        inappropriate = ['sorry', 'cannot', "can't", 'unable', 'error', 'problem']
+        if any(word in response.lower() for word in inappropriate):
+            return False
+            
+        return True
+            
+        response = response.strip()
+        
+        # Remove unwanted artifacts
+        lines = response.split('\n')
+        cleaned_lines = []
+        
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith(('User:', 'Human:', 'Customer:')):
+                if ':' in line and any(role in line.lower() for role in ['user', 'human', 'customer']):
+                    break
+                cleaned_lines.append(line)
+        
+        response = ' '.join(cleaned_lines).strip()
+        
+        # Ensure complete sentences, max 2 sentences
+        if response:
+            sentences = []
+            current_sentence = ""
+            
+            for char in response:
+                current_sentence += char
+                if char in '.!?':
+                    sentences.append(current_sentence.strip())
+                    current_sentence = ""
+                    if len(sentences) >= 2:
+                        break
+            
+            if current_sentence.strip() and len(current_sentence.strip()) > 8:
+                sentences.append(current_sentence.strip() + '.')
+            
+            response = ' '.join(sentences)
+        
+        # Length limit for website helper
+        if len(response) > 150:
+            response = response[:150].rsplit(' ', 1)[0] + '.'
+            
+        return response
+    
+    def _is_valid_website_helper_response(self, response: str, original_message: str) -> bool:
+        """Validate website helper response"""
+        if not response or len(response.strip()) < 3:
+            return False
+            
+        response_lower = response.lower()
+        
+        # Check for inappropriate responses
+        inappropriate = [
+            'i am an ai', 'language model', 'i cannot', 'i don\'t know',
+            'training data', 'as an ai'
+        ]
+        
+        for phrase in inappropriate:
+            if phrase in response_lower:
+                return False
+        
+        return True
+    
+    def _website_helper_fallback(self, message: str, page_context: Dict) -> str:
+        """Fallback responses for website helper"""
+        current_page = page_context.get('currentPage', '')
+        message_lower = message.lower()
+        
+        # Page-specific help
+        if current_page == '/' or 'home' in current_page:
+            if any(word in message_lower for word in ['navigate', 'help', 'how']):
+                return "Welcome to Componentary! Use the navigation menu to browse products, manage your account, or access seller tools. What are you looking for?"
+            return "I can help you navigate our homepage. Browse our featured products or use the search to find specific PC components."
+        
+        if 'product' in current_page:
+            if page_context.get('productInfo', {}).get('name'):
+                return f"You're viewing {page_context['productInfo']['name']}. I can help with specifications, pricing, or ordering information."
+            return "This is a product detail page. You can see specifications, reviews, and add items to your cart here."
+        
+        if 'checkout' in current_page:
+            return "On the checkout page, review your items and enter shipping details. Need help with the checkout process?"
+        
+        # General responses
+        if any(word in message_lower for word in ['search', 'find', 'product']):
+            return "Use the search bar at the top or browse by categories. I can help you find specific PC components or tech products."
+        
+        if any(word in message_lower for word in ['account', 'profile', 'login']):
+            return "Access your account through the login button in the top right. You can manage orders, profile, and preferences there."
+        
+        return "I'm here to help you navigate Componentary! Ask me about products, account features, or how to use the website."
+
 # Initialize the model
 chat_model = SmolLM2ChatModel()
 
@@ -309,6 +535,21 @@ async def chat_endpoint(request: ChatRequest):
     
     except Exception as e:
         logger.error(f"Chat endpoint error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/website-helper", response_model=WebsiteHelperResponse)
+async def website_helper_endpoint(request: WebsiteHelperRequest):
+    """Website helper endpoint for page-aware assistance"""
+    try:
+        response = await chat_model.generate_website_helper_response(
+            request.message,
+            request.page_context
+        )
+        
+        return WebsiteHelperResponse(response=response, confidence=0.9)
+    
+    except Exception as e:
+        logger.error(f"Website helper endpoint error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/health")
