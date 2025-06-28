@@ -5,6 +5,7 @@ import { registerUser } from '../utils/auth';
 const SignupPage = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    username: '', // Added username field
     name: '',
     email: '',
     password: '',
@@ -60,6 +61,18 @@ const SignupPage = () => {
               {error && <div className="alert alert-danger">{error}</div>}
               
               <form onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <label htmlFor="username" className="form-label">Username</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="username"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
                 <div className="mb-3">
                   <label htmlFor="name" className="form-label">Name</label>
                   <input
