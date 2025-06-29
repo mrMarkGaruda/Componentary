@@ -10,6 +10,11 @@
 ![Platform Overview](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 
 
+## Project Members
+
+### Sayan DE
+### Abramenko Mark
+
 ## Features
 
 1. Useful product review system
