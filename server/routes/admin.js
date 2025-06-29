@@ -69,6 +69,7 @@ router.get('/orders', auth, roles(['admin']), async (req, res) => {
 // Update user role
 router.patch('/users/:id/promote', auth, roles(['admin']), async (req, res) => {
   try {
+    const jwt = require('jsonwebtoken');
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -81,7 +82,15 @@ router.patch('/users/:id/promote', auth, roles(['admin']), async (req, res) => {
     }
     
     await user.save();
-    res.json({ message: 'User promoted successfully', user });
+    
+    // Generate new token with updated role
+    const newToken = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET);
+    
+    res.json({ 
+      message: 'User promoted successfully', 
+      user,
+      token: newToken // Include new token in response
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -89,6 +98,7 @@ router.patch('/users/:id/promote', auth, roles(['admin']), async (req, res) => {
 
 router.patch('/users/:id/demote', auth, roles(['admin']), async (req, res) => {
   try {
+    const jwt = require('jsonwebtoken');
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -101,7 +111,15 @@ router.patch('/users/:id/demote', auth, roles(['admin']), async (req, res) => {
     }
     
     await user.save();
-    res.json({ message: 'User demoted successfully', user });
+    
+    // Generate new token with updated role
+    const newToken = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET);
+    
+    res.json({ 
+      message: 'User demoted successfully', 
+      user,
+      token: newToken // Include new token in response
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

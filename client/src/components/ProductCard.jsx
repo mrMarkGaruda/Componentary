@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { isAuthenticated, getCurrentUser } from '../utils/auth';
+import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 
 const ProductCard = ({ product }) => {
-  const authenticated = isAuthenticated();
-  const user = getCurrentUser();
-  const userRole = user?.role;
+  const { user, isLoggedIn, userRole } = useAuth();
   const { addToCart } = useCart();
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -181,7 +179,7 @@ const ProductCard = ({ product }) => {
                 <i className="bi bi-eye me-1"></i>
                 View Details
               </Link>
-              {authenticated && (
+              {isLoggedIn && (
                 <button 
                   className="btn btn-primary px-3"
                   onClick={handleAddToCart}
@@ -192,7 +190,7 @@ const ProductCard = ({ product }) => {
               )}
             </div>
 
-            {authenticated && (userRole === 'admin' || 
+            {isLoggedIn && (userRole === 'admin' || 
               (userRole === 'seller' && product.seller === user.id)) && (
               <Link 
                 to={`/product/edit/${product._id}`} 

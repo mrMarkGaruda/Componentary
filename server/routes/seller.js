@@ -69,14 +69,14 @@ router.get('/analytics', auth, roles(['seller', 'admin']), async (req, res) => {
     // Get recent reviews
     const recentReviews = await Product.aggregate([
       { $match: { seller: req.user._id } },
-      { $unwind: '$ratings' },
-      { $sort: { 'ratings.createdAt': -1 } },
+      { $unwind: '$reviews' },
+      { $sort: { 'reviews.createdAt': -1 } },
       {
         $project: {
           productName: '$name',
-          rating: '$ratings.rating',
-          comment: '$ratings.comment',
-          createdAt: '$ratings.createdAt'
+          rating: '$reviews.rating',
+          comment: '$reviews.comment',
+          createdAt: '$reviews.createdAt'
         }
       },
       { $limit: 5 }

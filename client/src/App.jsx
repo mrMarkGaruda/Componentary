@@ -10,6 +10,7 @@ import WebsiteHelper from './components/WebsiteHelper';
 
 // Contexts
 import { CartProvider } from './contexts/CartContext';
+import { AuthProvider } from './contexts/AuthContext';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -30,10 +31,11 @@ import RecommendationsPage from './pages/RecommendationsPage';
 const App = () => {
   return (
     <Router>
-      <CartProvider>
-        <div className="d-flex flex-column min-vh-100">
-          <Navbar />
-          <CartDrawer />
+      <AuthProvider>
+        <CartProvider>
+          <div className="d-flex flex-column min-vh-100">
+            <Navbar />
+            <CartDrawer />
           
           <main style={{ minHeight: "calc(100vh - 180px)" }} className="flex-grow-1">
             <Routes>
@@ -44,7 +46,7 @@ const App = () => {
               <Route 
                 path="/product/new" 
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredRole="seller">
                     <ProductFormPage />
                   </ProtectedRoute>
                 } 
@@ -52,7 +54,7 @@ const App = () => {
               <Route 
                 path="/product/edit/:id" 
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredRole="seller">
                     <ProductFormPage />
                   </ProtectedRoute>
                 } 
@@ -70,7 +72,7 @@ const App = () => {
               <Route 
                 path="/admin" 
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredRole="admin">
                     <AdminDashboard />
                   </ProtectedRoute>
                 } 
@@ -78,7 +80,7 @@ const App = () => {
               <Route 
                 path="/seller" 
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredRole="seller">
                     <SellerDashboard />
                   </ProtectedRoute>
                 } 
@@ -108,6 +110,7 @@ const App = () => {
           <WebsiteHelper />
         </div>
       </CartProvider>
+      </AuthProvider>
     </Router>
   );
 };

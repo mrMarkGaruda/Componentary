@@ -5,7 +5,7 @@ const router = express.Router();
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://smollm-ai:8000';
 
 // Helper function to call AI service for website help
-const callWebsiteHelperAI = async (message, pageContext) => {
+const callWebsiteHelperAI = async (message, pageContext, sessionId) => {
   try {
     const response = await fetch(`${AI_SERVICE_URL}/website-helper`, {
       method: 'POST',
@@ -15,6 +15,7 @@ const callWebsiteHelperAI = async (message, pageContext) => {
       body: JSON.stringify({
         message,
         page_context: pageContext,
+        session_id: sessionId,
       }),
     });
 
@@ -140,7 +141,7 @@ const helperRateLimiter = (req, res, next) => {
 // Website helper chat endpoint
 router.post('/chat', helperRateLimiter, async (req, res) => {
   try {
-    const { message, pageContext } = req.body;
+    const { message, pageContext, sessionId } = req.body;
     
     if (!message || !message.trim()) {
       return res.status(400).json({ 
@@ -149,7 +150,7 @@ router.post('/chat', helperRateLimiter, async (req, res) => {
     }
     
     // Generate AI response
-    const aiResponse = await callWebsiteHelperAI(message.trim(), pageContext || {});
+    const aiResponse = await callWebsiteHelperAI(message.trim(), pageContext || {}, sessionId);
     
     res.json({
       response: aiResponse,

@@ -1,31 +1,93 @@
-const Product = require('../models/Product')
+const Product = require('../models/Product');
 
+// Enhanced product creation with better validation and analytics
 exports.createProduct = async (req, res) => {
   try {
     console.log('Product creation request body:', JSON.stringify(req.body, null, 2));
     console.log('User ID from req.user:', req.user?.id);
     
-    const product = new Product({ ...req.body, seller: req.user.id })
+    // Validate required fields
+    const requiredFields = ['name', 'price', 'category'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        message: 'Missing required fields',
+        missingFields
+      });
+    }
+
+    // Validate price
+    if (req.body.price < 0) {
+      return res.status(400).json({
+        message: 'Price must be a positive number'
+      });
+    }
+
+    // Create product with seller info
+    const productData = {
+      ...req.body,
+      seller: req.user.id,
+      createdAt: new Date(),
+      lastUpdated: new Date()
+    };
+
+    const product = new Product(productData);
     console.log('Product before save:', JSON.stringify(product.toObject(), null, 2));
     
-    await product.save()
+    await product.save();
     
-    // Invalidate cache for all products and potentially specific filter caches if implemented
+    // Invalidate relevant caches
     if (req.redisClient) {
-      await req.redisClient.del('products:all'); // Basic invalidation
-      // More granular invalidation would be needed for dynamic filter caches
+      try {
+        await req.redisClient.del('products:all');
+        await req.redisClient.del(`products:category:${product.category}`);
+        await req.redisClient.del('products:filters');
+        console.log('Product caches invalidated');
+      } catch (cacheError) {
+        console.warn('Cache invalidation failed:', cacheError.message);
+      }
     }
-    res.status(201).json(product)
+    
+    // Track product creation analytics
+    try {
+      await product.trackAnalytics('created');
+    } catch (analyticsError) {
+      console.warn('Analytics tracking failed:', analyticsError.message);
+    }
+    
+    // Populate seller info for response
+    await product.populate('seller', 'name email');
+    
+    res.status(201).json({
+      message: 'Product created successfully',
+      product
+    });
   } catch (error) {
     console.error('Product creation error:', error);
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      errors: error.errors
-    });
-    res.status(400).json({ 
-      message: error.message,
-      errors: error.errors 
+    
+    // Handle different types of errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => ({
+        field: err.path,
+        message: err.message
+      }));
+      
+      return res.status(400).json({
+        message: 'Validation failed',
+        errors: validationErrors
+      });
+    }
+    
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: 'Product with this name already exists'
+      });
+    }
+    
+    res.status(500).json({
+      message: 'Failed to create product',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 }

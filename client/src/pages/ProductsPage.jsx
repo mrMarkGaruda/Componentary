@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { fetchProductsWithFilters, getProductFilterOptions } from '../utils/api';
 import ProductList from '../components/ProductList';
 import ProductFilters from '../components/ProductFilters';
-import { isAuthenticated, getCurrentUser } from '../utils/auth';
+import { useAuth } from '../contexts/AuthContext';
 
 const ProductsPage = () => {
   const [productsData, setProductsData] = useState({ products: [], totalPages: 1, currentPage: 1, totalProducts: 0 });
@@ -17,11 +17,10 @@ const ProductsPage = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const authenticated = isAuthenticated();
-  const user = getCurrentUser();
-  const userRole = user?.role;
+  const { user, isLoggedIn, userRole } = useAuth();
 
-  const parseQueryParams = useCallback(() => {
+  // Parse query params from URL and update state
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     const newFilters = {};
     params.forEach((value, key) => {
@@ -31,147 +30,110 @@ const ProductsPage = () => {
         newFilters[key] = value;
       }
     });
-    const searchTermFromURL = params.get('searchTerm') || '';
-    const sortByFromURL = params.get('sortBy') || 'createdAt';
-    const sortOrderFromURL = params.get('sortOrder') || 'desc';
-    
-    setSearchTerm(searchTermFromURL);
-    setSortBy(sortByFromURL);
-    setSortOrder(sortOrderFromURL);
-    return newFilters;
+    setFilters(newFilters);
+    setSearchTerm(params.get('searchTerm') || '');
+    setSortBy(params.get('sortBy') || 'createdAt');
+    setSortOrder(params.get('sortOrder') || 'desc');
   }, [location.search]);
 
+  // Fetch filter options on mount
   useEffect(() => {
-    const initialFilters = parseQueryParams();
-    setFilters(initialFilters);
-    fetchFilterOptions();
-  }, [location.search, parseQueryParams]);
+    const fetchFilterOptionsAsync = async () => {
+      try {
+        const filterOptions = await getProductFilterOptions();
+        setAvailableFilters(filterOptions);
+      } catch (err) {
+        console.error('Error fetching filter options:', err);
+      }
+    };
+    fetchFilterOptionsAsync();
+  }, []);
 
-  const fetchFilterOptions = async () => {
-    try {
-      const filterOptions = await getProductFilterOptions();
-      setAvailableFilters(filterOptions);
-    } catch (err) {
-      console.error('Error fetching filter options:', err);
-    }
-  };
-
-  const fetchProducts = useCallback(async (pageNum = 1) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const queryParams = {
-        ...filters,
-        searchTerm: searchTerm || undefined,
-        sortBy,
-        sortOrder,
-        page: pageNum,
-        limit: 12
-      };
-
-      const data = await fetchProductsWithFilters(queryParams);
-      setProductsData(data);
-    } catch (err) {
-      setError('Failed to load products. Please try again later.');
-      console.error('Error fetching products:', err);
-    }
-    setLoading(false);
+  // Fetch products when filters/search/sort change
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const params = {
+          ...filters,
+          page: parseInt(new URLSearchParams(location.search).get('page')) || 1,
+          limit: 12,
+          searchTerm,
+          sortBy,
+          sortOrder,
+        };
+        Object.keys(params).forEach(key => (params[key] === '' || params[key] === null || params[key] === undefined) && delete params[key]);
+        const data = await fetchProductsWithFilters(params);
+        setProductsData(data);
+        // Update URL
+        const searchParams = new URLSearchParams(params).toString();
+        navigate(`${location.pathname}?${searchParams}`, { replace: true });
+      } catch (err) {
+        setError('Failed to load products. Please try again later.');
+        console.error('Error fetching products:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+    // eslint-disable-next-line
   }, [filters, searchTerm, sortBy, sortOrder]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const page = parseInt(params.get('page')) || 1;
-    fetchProducts(page);
-  }, [fetchProducts, location.search]);
-
-  const updateURL = useCallback((newParams) => {
-    const params = new URLSearchParams();
-    
-    // Add filters
-    Object.entries(newParams.filters || {}).forEach(([key, value]) => {
-      if (value && value !== '') {
-        params.set(key, value);
+  // Handlers
+  const handleFilterChange = (filterType, value) => {
+    setFilters(prevFilters => {
+      const newFilters = { ...prevFilters };
+      if (value === '' || value === null || value === undefined || (Array.isArray(value) && value.length === 0)) {
+        delete newFilters[filterType];
+      } else {
+        newFilters[filterType] = value;
       }
-    });
-    
-    // Add other params
-    if (newParams.searchTerm) params.set('searchTerm', newParams.searchTerm);
-    if (newParams.sortBy && newParams.sortBy !== 'createdAt') params.set('sortBy', newParams.sortBy);
-    if (newParams.sortOrder && newParams.sortOrder !== 'desc') params.set('sortOrder', newParams.sortOrder);
-    if (newParams.page && newParams.page !== 1) params.set('page', newParams.page);
-
-    const newURL = params.toString() ? `?${params.toString()}` : '';
-    navigate(newURL, { replace: true });
-  }, [navigate]);
-
-  const handleFilterChange = (newFilters) => {
-    setFilters(newFilters);
-    updateURL({ 
-      filters: newFilters, 
-      searchTerm, 
-      sortBy, 
-      sortOrder,
-      page: 1 
+      return newFilters;
     });
   };
 
-  const handleSearchSubmit = (e) => {
+  const handlePageChange = (pageNumber) => {
+    const params = new URLSearchParams(location.search);
+    params.set('page', pageNumber);
+    navigate(`${location.pathname}?${params.toString()}`);
+  };
+
+  const handleSearch = (e) => {
     e.preventDefault();
-    updateURL({ 
-      filters, 
-      searchTerm, 
-      sortBy, 
-      sortOrder,
-      page: 1 
-    });
+    setFilters({ ...filters }); // trigger useEffect
+    const params = new URLSearchParams(location.search);
+    params.set('searchTerm', searchTerm);
+    params.set('page', 1);
+    navigate(`${location.pathname}?${params.toString()}`);
   };
 
-  const handleSortChange = async (newSortBy, newSortOrder) => {
-    setSortBy(newSortBy);
-    setSortOrder(newSortOrder);
-    
-    // Fetch products immediately with new sorting without updating URL
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const queryParams = {
-        ...filters,
-        searchTerm: searchTerm || undefined,
-        sortBy: newSortBy,
-        sortOrder: newSortOrder,
-        page: 1, // Reset to first page when sorting
-        limit: 12
-      };
-
-      const data = await fetchProductsWithFilters(queryParams);
-      setProductsData(data);
-    } catch (err) {
-      setError('Failed to load products. Please try again later.');
-      console.error('Error fetching products:', err);
-    } finally {
-      setLoading(false);
-    }
+  const handleSortChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'sortBy') setSortBy(value);
+    if (name === 'sortOrder') setSortOrder(value);
+    const params = new URLSearchParams(location.search);
+    params.set(name, value);
+    params.set('page', 1);
+    navigate(`${location.pathname}?${params.toString()}`);
   };
 
-  const handlePageChange = (pageNum) => {
-    updateURL({ 
-      filters, 
-      searchTerm, 
-      sortBy, 
-      sortOrder,
-      page: pageNum 
-    });
+  const handleClearFilters = () => {
+    setFilters({});
+    setSearchTerm('');
+    setSortBy('createdAt');
+    setSortOrder('desc');
+    navigate('/products');
   };
 
   return (
     <div className="container py-4">
+      {/* Header */}
       <div className="row">
         <div className="col-12">
           <div className="d-flex justify-content-between align-items-center mb-4">
             <h1>All Products</h1>
-            {authenticated && (userRole === 'admin' || userRole === 'seller') && (
+            {isLoggedIn && (userRole === 'admin' || userRole === 'seller') && (
               <Link to="/product/new" className="btn btn-primary">
                 <i className="bi bi-plus-circle me-2"></i>Add New Product
               </Link>
@@ -180,58 +142,81 @@ const ProductsPage = () => {
         </div>
       </div>
 
-      <div className="row">
+      {/* Products Layout with Grid */}
+      <div className="products-layout">
         {/* Filters Sidebar */}
-        <div className="col-lg-3 mb-4">
-          <div className="sticky-top" style={{ top: '100px' }}>
-            {availableFilters && (
-              <ProductFilters
-                availableFilters={availableFilters}
-                currentFilters={filters}
-                onFilterChange={handleFilterChange}
-              />
-            )}
-          </div>
+        <div className="filter-sidebar">
+          {availableFilters ? (
+            <ProductFilters
+              availableFilters={availableFilters}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              onClearFilters={handleClearFilters}
+            />
+          ) : (
+            <div className="filter-sidebar">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="mb-0">
+                  <i className="bi bi-funnel me-2"></i>Filters
+                </h5>
+                <div className="loading-spinner"></div>
+              </div>
+              <p className="text-muted">Loading filters...</p>
+            </div>
+          )}
         </div>
 
         {/* Main Content */}
-        <div className="col-lg-9">
+        <div className="products-grid">
           {/* Search and Sort Controls */}
-          <div className="mb-4">
-            <div className="row align-items-center">
-              <div className="col-md-8">
-                <form onSubmit={handleSearchSubmit}>
-                  <div className="input-group">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Search products..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <button type="submit" className="btn btn-outline-primary">
-                      <i className="bi bi-search"></i>
-                    </button>
+          <div className="card mb-4">
+            <div className="card-body">
+              <div className="row align-items-center">
+                <div className="col-md-8 mb-3 mb-md-0">
+                  <form onSubmit={handleSearch}>
+                    <div className="input-group">
+                      <input
+                        type="text"
+                        className="form-control form-control-lg"
+                        placeholder="Search products..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                      <button type="submit" className="btn btn-primary">
+                        <i className="bi bi-search"></i>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+                <div className="col-md-4">
+                  <div className="row g-2">
+                    <div className="col-6">
+                      <select
+                        name="sortBy"
+                        value={sortBy}
+                        onChange={handleSortChange}
+                        className="form-select"
+                      >
+                        <option value="createdAt">Newest</option>
+                        <option value="price">Price</option>
+                        <option value="name">Name</option>
+                        <option value="averageRating">Rating</option>
+                        {searchTerm && <option value="score">Relevance</option>}
+                      </select>
+                    </div>
+                    <div className="col-6">
+                      <select
+                        name="sortOrder"
+                        value={sortOrder}
+                        onChange={handleSortChange}
+                        className="form-select"
+                      >
+                        <option value="asc">↑ Asc</option>
+                        <option value="desc">↓ Desc</option>
+                      </select>
+                    </div>
                   </div>
-                </form>
-              </div>
-              <div className="col-md-4">
-                <select
-                  className="form-select"
-                  value={`${sortBy}-${sortOrder}`}
-                  onChange={(e) => {
-                    const [newSortBy, newSortOrder] = e.target.value.split('-');
-                    handleSortChange(newSortBy, newSortOrder);
-                  }}
-                >
-                  <option value="createdAt-desc">Newest First</option>
-                  <option value="createdAt-asc">Oldest First</option>
-                  <option value="price-asc">Price: Low to High</option>
-                  <option value="price-desc">Price: High to Low</option>
-                  <option value="name-asc">Name: A to Z</option>
-                  <option value="name-desc">Name: Z to A</option>
-                  <option value="averageRating-desc">Highest Rated</option>
-                </select>
+                </div>
               </div>
             </div>
           </div>
@@ -353,11 +338,7 @@ const ProductsPage = () => {
               </p>
               <button 
                 className="btn btn-outline-primary"
-                onClick={() => {
-                  setFilters({});
-                  setSearchTerm('');
-                  updateURL({ filters: {}, searchTerm: '', sortBy, sortOrder, page: 1 });
-                }}
+                onClick={handleClearFilters}
               >
                 Clear All Filters
               </button>

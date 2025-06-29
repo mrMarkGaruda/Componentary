@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
-import { isAuthenticated } from '../utils/auth';
+import { useAuth } from '../contexts/AuthContext';
 import { placeOrder } from '../utils/api';
-import { getToken, getCurrentUser } from '../utils/auth';
+import { getToken } from '../utils/auth';
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const { cart, cartTotal, clearCart } = useCart();
+  const { user, isLoggedIn } = useAuth();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -23,10 +24,9 @@ const CheckoutPage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const user = getCurrentUser();
 
   // Redirect if not authenticated
-  if (!isAuthenticated()) {
+  if (!isLoggedIn) {
     return (
       <div className="container py-5 text-center">
         <div className="alert alert-warning">
