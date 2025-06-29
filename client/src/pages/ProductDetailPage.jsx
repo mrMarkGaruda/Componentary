@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { fetchProductById, deleteProduct, fetchBoughtTogether } from '../utils/api';
-import { isAuthenticated, getToken, getCurrentUser } from '../utils/auth';
+import { getToken } from '../utils/auth';
+import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import ProductReviews from '../components/ProductReviews';
 import { ChatButton } from '../components/Chat';
@@ -16,8 +17,7 @@ const ProductDetailPage = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [boughtTogether, setBoughtTogether] = useState([]);
-  const authenticated = isAuthenticated();
-  const user = getCurrentUser();
+  const { user, isLoggedIn } = useAuth();
   const { addToCart } = useCart();
 
   useEffect(() => {
@@ -178,7 +178,7 @@ const ProductDetailPage = () => {
                 </button>
                 
                 {/* Chat with Seller Button */}
-                {authenticated && user?.id !== product.seller?._id && (
+                {isLoggedIn && user?.id !== product.seller?._id && (
                   <ChatButton 
                     sellerId={product.seller?._id} 
                     sellerName={product.seller?.name} 
@@ -192,7 +192,7 @@ const ProductDetailPage = () => {
                   Back to Products
                 </Link>
                 
-                {authenticated && (user?.role === 'admin' || user?.role === 'seller') ? (
+                {isLoggedIn && (user?.role === 'admin' || user?.role === 'seller') ? (
                   <>
                     <Link to={`/product/edit/${id}`} className="btn btn-outline-primary">
                       Edit
@@ -212,7 +212,7 @@ const ProductDetailPage = () => {
                       )}
                     </button>
                   </>
-                ) : authenticated ? (
+                ) : isLoggedIn ? (
                   <>
                     <button className="btn btn-outline-primary" disabled title="Only sellers and admins can edit products">
                       Edit

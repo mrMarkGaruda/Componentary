@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getCurrentUser } from '../utils/auth';
+import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
@@ -9,46 +9,129 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [analytics, setAnalytics] = useState({});
   const [loading, setLoading] = useState(true);
-  const user = getCurrentUser();
+  const { user, refreshUser, isLoading } = useAuth();
 
-  // Redirect if not admin
+  // Redirect if not admin or still loading
+  if (isLoading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '50vh' }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
   if (!user || user.role !== 'admin') {
     return <Navigate to="/" replace />;
   }
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [activeTab]);
+    // Refresh user data on component mount to ensure we have latest permissions
+    const initializeAdmin = async () => {
+      console.log('AdminDashboard: Initializing...');
+      console.log('Current user:', user);
+      console.log('User role:', user?.role);
+      console.log('Token exists:', !!localStorage.getItem('token'));
+      
+      // Test token validity first
+      const tokenValid = await testTokenValidity();
+      console.log('Token is valid:', tokenValid);
+      
+      if (!tokenValid) {
+        console.log('Token is invalid, user needs to re-login');
+        return;
+      }
+      
+      try {
+        const freshUser = await refreshUser();
+        console.log('Refreshed user:', freshUser);
+      } catch (error) {
+        console.error('Failed to refresh user:', error);
+      }
+    };
+    initializeAdmin();
+  }, [refreshUser]);
+
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      fetchDashboardData();
+    }
+  }, [activeTab, user]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found in localStorage');
+        return;
+      }
+
+      console.log('Fetching admin data for tab:', activeTab);
+      console.log('Using token:', token ? 'Token exists' : 'No token');
+      console.log('User role:', user?.role);
+
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/admin/${activeTab}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Admin API error (${response.status}):`, errorText);
+        
+        if (response.status === 403) {
+          console.error('Access forbidden - user may not have admin privileges or token is invalid');
+          // Try to refresh user data
+          await refreshUser();
+        }
+        return;
+      }
+
       const data = await response.json();
+      console.log(`Received ${activeTab} data:`, data);
       
-      if (activeTab === 'users') setUsers(data);
-      else if (activeTab === 'products') setProducts(data);
-      else if (activeTab === 'orders') setOrders(data);
-      else if (activeTab === 'analytics') setAnalytics(data);
+      if (activeTab === 'users') setUsers(Array.isArray(data) ? data : []);
+      else if (activeTab === 'products') setProducts(Array.isArray(data) ? data : []);
+      else if (activeTab === 'orders') setOrders(Array.isArray(data) ? data : []);
+      else if (activeTab === 'analytics') setAnalytics(data || {});
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      // Reset arrays to empty to prevent map errors
+      if (activeTab === 'users') setUsers([]);
+      else if (activeTab === 'products') setProducts([]);
+      else if (activeTab === 'orders') setOrders([]);
     }
     setLoading(false);
   };
 
   const handleUserAction = async (userId, action) => {
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/admin/users/${userId}/${action}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/admin/users/${userId}/${action}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         }
       });
+      
+      const result = await response.json();
+      
+      // If the response includes a new token, update localStorage
+      if (result.token) {
+        localStorage.setItem('token', result.token);
+        
+        // If the current user's role was changed, refresh their data
+        if (userId === user._id) {
+          await refreshUser();
+          // Force a page reload to ensure the navbar updates
+          window.location.reload();
+        }
+      }
+      
       fetchDashboardData();
     } catch (error) {
       console.error('Error updating user:', error);
@@ -302,13 +385,51 @@ const AdminDashboard = () => {
     </div>
   );
 
+  // Debug function to test token validity
+  const testTokenValidity = async () => {
+    const token = localStorage.getItem('token');
+    console.log('Testing token validity...');
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const result = await response.json();
+      console.log('Token test result:', { status: response.status, data: result });
+      return response.ok;
+    } catch (error) {
+      console.error('Token test failed:', error);
+      return false;
+    }
+  };
+
   return (
     <div className="container-fluid py-4">
       <div className="d-flex align-items-center mb-4">
         <i className="bi bi-shield-lock text-primary fs-2 me-3"></i>
-        <div>
+        <div className="flex-grow-1">
           <h1 className="h2 fw-bold text-light mb-1">Admin Dashboard</h1>
           <p className="text-muted mb-0">Manage users, products, and orders</p>
+        </div>
+        <div className="debug-section">
+          <button 
+            className="btn btn-outline-warning btn-sm me-2" 
+            onClick={testTokenValidity}
+          >
+            Test Token
+          </button>
+          <button 
+            className="btn btn-outline-info btn-sm" 
+            onClick={async () => {
+              console.log('Manual refresh triggered');
+              await refreshUser();
+              await fetchDashboardData();
+            }}
+          >
+            Refresh Data
+          </button>
         </div>
       </div>
       

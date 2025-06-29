@@ -1,18 +1,15 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { isAuthenticated, logoutUser } from '../utils/auth';
-import { getCurrentUser } from '../utils/auth';
+import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const authenticated = isAuthenticated();
-  const user = getCurrentUser();
-  const userRole = user?.role;
+  const { user, isLoggedIn, logout, userRole } = useAuth();
   const { cartItemsCount, setCartOpen } = useCart();
 
   const handleLogout = () => {
-    logoutUser();
+    logout();
     navigate('/login');
   };
 
@@ -45,21 +42,21 @@ const Navbar = () => {
                 <i className="bi bi-grid me-1"></i> Products
               </Link>
             </li>
-            {authenticated && (userRole === 'admin' || userRole === 'seller') && (
+            {isLoggedIn && (userRole === 'admin' || userRole === 'seller') && (
               <li className="nav-item">
                 <Link to="/product/new" className="nav-link d-flex align-items-center">
                   <i className="bi bi-plus-circle me-1"></i> Add Product
                 </Link>
               </li>
             )}
-            {authenticated && userRole === 'admin' && (
+            {isLoggedIn && userRole === 'admin' && (
               <li className="nav-item">
                 <Link to="/admin" className="nav-link d-flex align-items-center">
                   <i className="bi bi-shield-check me-1"></i> Admin
                 </Link>
               </li>
             )}
-            {authenticated && (userRole === 'seller' || userRole === 'admin') && (
+            {isLoggedIn && (userRole === 'seller' || userRole === 'admin') && (
               <li className="nav-item">
                 <Link to="/seller" className="nav-link d-flex align-items-center">
                   <i className="bi bi-shop me-1"></i> Seller
@@ -74,7 +71,7 @@ const Navbar = () => {
           </ul>
 
           <ul className="navbar-nav">
-            {authenticated && (
+            {isLoggedIn && (
               <li className="nav-item">
                 <button 
                   className="nav-link btn btn-link position-relative"
@@ -104,7 +101,7 @@ const Navbar = () => {
               </li>
             )}
             
-            {authenticated ? (
+            {isLoggedIn ? (
               <li className="nav-item dropdown">
                 <button 
                   className="nav-link dropdown-toggle btn btn-link d-flex align-items-center" 

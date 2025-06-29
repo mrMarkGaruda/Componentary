@@ -6,6 +6,7 @@ const WebsiteHelper = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const messagesEndRef = useRef(null);
   const location = useLocation();
 
@@ -96,7 +97,8 @@ const WebsiteHelper = () => {
         },
         body: JSON.stringify({
           message: userMessage.content,
-          pageContext: pageContext
+          pageContext: pageContext,
+          sessionId: sessionId
         })
       });
 

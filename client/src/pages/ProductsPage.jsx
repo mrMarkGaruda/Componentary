@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { fetchProductsWithFilters, getProductFilterOptions } from '../utils/api';
 import ProductList from '../components/ProductList';
 import ProductFilters from '../components/ProductFilters';
-import { isAuthenticated, getCurrentUser } from '../utils/auth';
+import { useAuth } from '../contexts/AuthContext';
 
 const ProductsPage = () => {
   const [productsData, setProductsData] = useState({ products: [], totalPages: 1, currentPage: 1, totalProducts: 0 });
@@ -17,13 +17,26 @@ const ProductsPage = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const authenticated = isAuthenticated();
-  const user = getCurrentUser();
-  const userRole = user?.role;
+  const { user, isLoggedIn, userRole } = useAuth();
 
   const parseQueryParams = useCallback(() => {
     const params = new URLSearchParams(location.search);
     const newFilters = {};
+    
+    // Check if we have malformed URL parameters (like ?0=m&1=a...)
+    let hasInvalidParams = false;
+    params.forEach((value, key) => {
+      if (!isNaN(key)) {
+        hasInvalidParams = true;
+      }
+    });
+    
+    // If we have invalid params, clear them and return empty filters
+    if (hasInvalidParams) {
+      navigate('/products', { replace: true });
+      return {};
+    }
+    
     params.forEach((value, key) => {
       if (key === 'page' || key === 'searchTerm' || key === 'sortBy' || key === 'sortOrder') {
         // Handled separately
@@ -39,11 +52,12 @@ const ProductsPage = () => {
     setSortBy(sortByFromURL);
     setSortOrder(sortOrderFromURL);
     return newFilters;
-  }, [location.search]);
+  }, [location.search, navigate]);
 
   useEffect(() => {
     const initialFilters = parseQueryParams();
-    setFilters(initialFilters);
+    // Ensure filters is always an object
+    setFilters(initialFilters && typeof initialFilters === 'object' ? initialFilters : {});
     fetchFilterOptions();
   }, [location.search, parseQueryParams]);
 
@@ -70,6 +84,7 @@ const ProductsPage = () => {
         limit: 12
       };
 
+      
       const data = await fetchProductsWithFilters(queryParams);
       setProductsData(data);
     } catch (err) {
@@ -88,8 +103,13 @@ const ProductsPage = () => {
   const updateURL = useCallback((newParams) => {
     const params = new URLSearchParams();
     
+    // Ensure filters is an object
+    const safeFilters = (newParams.filters && typeof newParams.filters === 'object' && !Array.isArray(newParams.filters)) 
+      ? newParams.filters 
+      : {};
+    
     // Add filters
-    Object.entries(newParams.filters || {}).forEach(([key, value]) => {
+    Object.entries(safeFilters).forEach(([key, value]) => {
       if (value && value !== '') {
         params.set(key, value);
       }
@@ -131,28 +151,14 @@ const ProductsPage = () => {
     setSortBy(newSortBy);
     setSortOrder(newSortOrder);
     
-    // Fetch products immediately with new sorting without updating URL
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const queryParams = {
-        ...filters,
-        searchTerm: searchTerm || undefined,
-        sortBy: newSortBy,
-        sortOrder: newSortOrder,
-        page: 1, // Reset to first page when sorting
-        limit: 12
-      };
-
-      const data = await fetchProductsWithFilters(queryParams);
-      setProductsData(data);
-    } catch (err) {
-      setError('Failed to load products. Please try again later.');
-      console.error('Error fetching products:', err);
-    } finally {
-      setLoading(false);
-    }
+    // Update URL with new sorting parameters
+    updateURL({ 
+      filters, 
+      searchTerm, 
+      sortBy: newSortBy, 
+      sortOrder: newSortOrder,
+      page: 1 
+    });
   };
 
   const handlePageChange = (pageNum) => {
@@ -165,13 +171,26 @@ const ProductsPage = () => {
     });
   };
 
+  const handleClearFilters = () => {
+    setFilters({});
+    setSearchTerm('');
+    updateURL({ 
+      filters: {}, 
+      searchTerm: '', 
+      sortBy, 
+      sortOrder,
+      page: 1 
+    });
+  };
+
   return (
     <div className="container py-4">
+      {/* Header */}
       <div className="row">
         <div className="col-12">
           <div className="d-flex justify-content-between align-items-center mb-4">
             <h1>All Products</h1>
-            {authenticated && (userRole === 'admin' || userRole === 'seller') && (
+            {isLoggedIn && (userRole === 'admin' || userRole === 'seller') && (
               <Link to="/product/new" className="btn btn-primary">
                 <i className="bi bi-plus-circle me-2"></i>Add New Product
               </Link>
@@ -180,22 +199,32 @@ const ProductsPage = () => {
         </div>
       </div>
 
-      <div className="row">
+      {/* Products Layout with Grid */}
+      <div className="products-layout">
         {/* Filters Sidebar */}
-        <div className="col-lg-3 mb-4">
-          <div className="sticky-top" style={{ top: '100px' }}>
-            {availableFilters && (
-              <ProductFilters
-                availableFilters={availableFilters}
-                currentFilters={filters}
-                onFilterChange={handleFilterChange}
-              />
-            )}
-          </div>
+        <div className="filter-sidebar">
+          {availableFilters ? (
+            <ProductFilters
+              availableFilters={availableFilters}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              onClearFilters={handleClearFilters}
+            />
+          ) : (
+            <div className="filter-sidebar">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="mb-0">
+                  <i className="bi bi-funnel me-2"></i>Filters
+                </h5>
+                <div className="loading-spinner"></div>
+              </div>
+              <p className="text-muted">Loading filters...</p>
+            </div>
+          )}
         </div>
 
         {/* Main Content */}
-        <div className="col-lg-9">
+        <div className="products-grid">
           {/* Search and Sort Controls */}
           <div className="mb-4">
             <div className="row align-items-center">

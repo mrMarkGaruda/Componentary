@@ -87,6 +87,21 @@ db.users.insertMany(usersToInsert);
 const adminUser = db.users.findOne({ email: 'admin@componentary.com' });
 const sellerGiga = db.users.findOne({ email: 'seller.giga@example.com' });
 
+// Insert many more users for review generation
+const bulkUsers = [];
+for (let i = 1; i <= 60; i++) {
+  bulkUsers.push({
+    username: `user${i}`,
+    name: `User ${i}`,
+    email: `user${i}@example.com`,
+    password: 'password123',
+    role: 'customer',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+}
+db.users.insertMany(bulkUsers);
+
 // PC Component Products
 const productsToInsert = [
   // CPUs
@@ -730,6 +745,55 @@ const productsToInsert = [
 
 db.products.insertMany(productsToInsert);
 print(productsToInsert.length + ' sample PC component products inserted.');
+
+// Fetch all users (excluding admin/seller)
+const allUsers = db.users.find({ role: 'customer' }).toArray();
+const allProducts = db.products.find({}).toArray();
+
+// Sample review comments
+const reviewComments = [
+  'Amazing product!',
+  'Works as expected.',
+  'Highly recommended.',
+  'Good value for money.',
+  'Not satisfied with the quality.',
+  'Exceeded my expectations!',
+  'Would buy again.',
+  'Average experience.',
+  'Fast shipping and great support.',
+  'Product was defective.',
+  'Top notch performance.',
+  'Build quality is excellent.',
+  'Not worth the price.',
+  'Very happy with my purchase.',
+  'Customer service was helpful.'
+];
+
+// Generate reviews for each product
+const bulkReviews = [];
+allProducts.forEach(product => {
+  // Pick a random number of reviews for this product (10-20)
+  const numReviews = Math.floor(Math.random() * 11) + 10;
+  // Shuffle users for unique reviewers
+  const shuffledUsers = allUsers.sort(() => 0.5 - Math.random());
+  for (let i = 0; i < numReviews && i < shuffledUsers.length; i++) {
+    const user = shuffledUsers[i];
+    const rating = Math.floor(Math.random() * 5) + 1;
+    const comment = reviewComments[Math.floor(Math.random() * reviewComments.length)];
+    bulkReviews.push({
+      product: product._id,
+      user: user._id,
+      rating: rating,
+      comment: comment,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+  }
+});
+if (bulkReviews.length > 0) {
+  db.reviews.insertMany(bulkReviews);
+  print(bulkReviews.length + ' reviews inserted for products.');
+}
 
 // Example of creating a sample order (optional, can be expanded)
 /*

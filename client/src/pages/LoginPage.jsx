@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { loginUser, isAuthenticated } from '../utils/auth';
+import { loginUser } from '../utils/auth';
+import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { isLoggedIn, login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -13,10 +15,10 @@ const LoginPage = () => {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (isLoggedIn) {
       navigate('/');
     }
-  }, [navigate]);
+  }, [isLoggedIn, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -29,7 +31,8 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      await loginUser(formData.email, formData.password);
+      const { user, token } = await loginUser(formData.email, formData.password);
+      login(user, token); // Use AuthContext login
       navigate('/'); // Redirect to homepage after successful login
     } catch (err) {
       setError(err.message || 'Invalid email or password. Please try again.');
@@ -47,7 +50,8 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      await loginUser('demo@example.com', 'password123');
+      const { user, token } = await loginUser('demo@example.com', 'password123');
+      login(user, token); // Use AuthContext login
       navigate('/');
     } catch (err) {
       setError(err.message || 'Demo login failed. Please try again.');
