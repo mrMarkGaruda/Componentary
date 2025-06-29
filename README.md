@@ -26,6 +26,8 @@
     ![image](https://github.com/user-attachments/assets/9e8ad8c8-74df-4593-88bb-a769309f213c)
 
 4. Helpful LLM assistant:
+   ![image](https://github.com/user-attachments/assets/8ec88b6a-1eb7-4fa3-9f4e-71ecdca52821)
+   ![image](https://github.com/user-attachments/assets/86359a33-2205-41cd-bb12-bc48685d8d76)
    ![image](https://github.com/user-attachments/assets/2a3bf9e9-931c-4c6d-a5a4-9b3e95efc80b)
 
 The rest are for you to explore!
