@@ -9,6 +9,22 @@
 
 ![Platform Overview](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 
+
+## Features
+
+1. Helpful LLM assistant:
+   ![image](https://github.com/user-attachments/assets/2a3bf9e9-931c-4c6d-a5a4-9b3e95efc80b)
+
+2. Extensive admin dashboard
+    ![image](https://github.com/user-attachments/assets/1e27ed9b-10e8-42fc-bdfc-f79dcadc85cf)
+    ![image](https://github.com/user-attachments/assets/d31ba46d-cf6f-47d8-b68d-3117fd2be789)
+    ![image](https://github.com/user-attachments/assets/9e8ad8c8-74df-4593-88bb-a769309f213c)
+
+The rest are for you to explore!
+
+(We didn't populate the database with reviews to let the user explore them by themselves)
+
+
 ## 🌟 Project Overview
 
 Componentary is a sophisticated e-commerce platform specifically designed for computer components and electronics. Built with modern web technologies, it offers a complete marketplace experience with advanced features like AI-powered customer service, real-time communication, comprehensive analytics, and a powerful recommendation engine.
