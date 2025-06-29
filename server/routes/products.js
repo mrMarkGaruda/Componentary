@@ -1,5 +1,6 @@
 const express = require('express');
 const Product = require('../models/Product');
+const Review = require('../models/Review');
 const productController = require('../controllers/productController');
 const auth = require('../middleware/auth');
 const roles = require('../middleware/roles');
@@ -43,73 +44,60 @@ router.put('/:id', auth, roles(['admin', 'seller']), productController.updatePro
 // DELETE product
 router.delete('/:id', auth, roles(['admin', 'seller']), productController.deleteProduct);
 
-// Add review to product
+// POST create a review for a product
 router.post('/:id/reviews', auth, async (req, res) => {
   try {
     const { rating, comment } = req.body;
     const productId = req.params.id;
     const userId = req.user.id;
     
-    console.log('Review submission:', { rating, comment, productId, userId });
-    
+    // Check if product exists
     const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
+    if (!product) return res.status(404).json({ message: 'Product not found' });
     
-    // Check if user already reviewed this product
-    const existingReview = product.reviews.find(
-      r => r.user.toString() === userId
-    );
+    // Check if user already reviewed
+    const existing = await Review.findOne({ product: productId, user: userId });
+    if (existing) return res.status(400).json({ message: 'You have already reviewed this product' });
     
-    if (existingReview) {
-      return res.status(400).json({ message: 'You have already reviewed this product' });
-    }
+    // Create review
+    const review = new Review({ product: productId, user: userId, rating, comment });
+    await review.save();
     
-    const review = {
-      user: userId,
-      rating: parseInt(rating),
-      comment: comment || '',
-      createdAt: new Date()
-    };
+    // Update product stats
+    await updateProductStats(productId);
     
-    product.reviews.push(review);
-    
-    // Recalculate rating stats
-    product.calculateRatingStats();
-    
-    await product.save();
-    
-    // Populate the user info for the response
-    await product.populate('reviews.user', 'name email');
-    const savedReview = product.reviews[product.reviews.length - 1];
-    
-    res.status(201).json(savedReview);
+    // Populate user info for response
+    await review.populate('user', 'name email');
+    res.status(201).json(review);
   } catch (error) {
-    console.error('Review submission error:', error);
     res.status(400).json({ message: error.message });
   }
 });
 
-// Get reviews for a product
+// GET reviews for a product
 router.get('/:id/reviews', async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id)
-      .populate('reviews.user', 'name')
-      .select('reviews averageRating reviewCount');
-    
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-    
+    const productId = req.params.id;
+    const reviews = await Review.find({ product: productId }).populate('user', 'name').sort({ createdAt: -1 });
+    const product = await Product.findById(productId).select('averageRating reviewCount');
     res.json({
-      reviews: product.reviews,
-      averageRating: product.averageRating,
-      reviewCount: product.reviewCount
+      reviews,
+      averageRating: product?.averageRating || 0,
+      reviewCount: product?.reviewCount || 0
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
+
+// Helper to update product stats
+async function updateProductStats(productId) {
+  const reviews = await Review.find({ product: productId });
+  const averageRating = reviews.length ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) : 0;
+  await Product.findByIdAndUpdate(productId, {
+    averageRating,
+    reviewCount: reviews.length
+  });
+}
 
 module.exports = router;

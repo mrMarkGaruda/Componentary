@@ -230,14 +230,7 @@ const ProductDetailPage = () => {
       
       {/* Product Reviews Section */}
       <div className="container py-4">
-        <ProductReviews 
-          productId={id} 
-          reviews={product.reviews || []} 
-          onReviewAdded={() => {
-            // Refresh product data to show new review
-            fetchProductById(id).then(setProduct);
-          }} 
-        />
+        <ProductReviews productId={id} />
       </div>
     </div>
   );
